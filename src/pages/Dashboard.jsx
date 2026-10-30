@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getPlayerById, updatePlayer } from '../services/players';
 import { getTeamByUserId, updateTeam } from '../services/teams';
 import { fmtChips } from '../lib/format';
+import { TrophyIcon, PlayerIcon, OwnerIcon, ShieldIcon } from '../components/Icons';
 import Avatar from '../components/Avatar';
 import Button from '../components/Button';
 import Input from '../components/Input';
@@ -60,14 +61,12 @@ export default function Dashboard() {
     e.preventDefault();
     setSaving(true);
     try {
-      // 1. Update user document
       await updateDoc(doc(db, 'users', user.uid), {
         displayName: editName.trim(),
         phone: editPhone.trim(),
         photoData: editPhoto,
       });
 
-      // 2. Update player or team document
       if (isPlayer && playerData) {
         await updatePlayer(user.uid, {
           name: editName.trim(),
@@ -101,7 +100,7 @@ export default function Dashboard() {
       }
 
       await refreshProfile();
-      addToast('Profile updated successfully!', 'success');
+      addToast('Profile updated successfully.', 'success');
     } catch (err) {
       console.error('Update error:', err);
       addToast('Failed to update profile.', 'error');
@@ -127,8 +126,8 @@ export default function Dashboard() {
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                   {profile?.displayName || user?.email?.split('@')[0]}
                 </h1>
-                <span className="bg-indigo-50 text-indigo-700 text-xs font-black uppercase px-2.5 py-1 rounded-lg">
-                  {isBidder ? '👑 Team Owner' : isPlayer ? '🏃 Athlete' : isAdmin ? '🛡️ Admin' : 'User'}
+                <span className="bg-slate-100 text-slate-800 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border border-slate-200">
+                  {isBidder ? 'Team Owner' : isPlayer ? 'Athlete' : isAdmin ? 'Administrator' : 'User'}
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium mt-1">
@@ -137,26 +136,25 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Quick Action Badges */}
           <div className="flex items-center gap-3">
             {isBidder && teamData && (
-              <div className="bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-2xl text-right">
-                <span className="text-[10px] font-bold text-amber-800 uppercase block">Remaining Purse</span>
-                <span className="text-lg font-black text-amber-950">
-                  🪙 {fmtChips(teamData.remainingChips)}
+              <div className="bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-2xl text-right">
+                <span className="text-[10px] font-bold text-emerald-800 uppercase block tracking-wider">Remaining Purse</span>
+                <span className="text-lg font-black text-emerald-900">
+                  {fmtChips(teamData.remainingChips)}
                 </span>
               </div>
             )}
             {isAdmin && (
               <Link to="/admin">
-                <Button className="bg-violet-600 hover:bg-violet-700 font-bold">
-                  Open Admin Console
+                <Button variant="dark" className="font-bold">
+                  Admin Console
                 </Button>
               </Link>
             )}
             <Link to="/">
               <Button variant="outline" className="font-bold">
-                Join Live Auction ⚡
+                Live Auctions
               </Button>
             </Link>
           </div>
@@ -165,34 +163,32 @@ export default function Dashboard() {
         {/* BIDDER / TEAM OWNER DASHBOARD */}
         {isBidder && teamData && (
           <div className="space-y-6">
-            {/* Financial Overview Tiles */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Remaining Chips</p>
-                <p className="text-3xl font-black text-emerald-700 mt-1">
-                  🪙 {fmtChips(teamData.remainingChips)}
+                <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Remaining Chips</p>
+                <p className="text-3xl font-black text-emerald-800 mt-1">
+                  {fmtChips(teamData.remainingChips)}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">Available for bidding in live auctions</p>
+                <p className="text-xs text-slate-400 mt-1">Available for bidding in live rounds</p>
               </div>
 
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Spent Chips</p>
-                <p className="text-3xl font-black text-amber-700 mt-1">
-                  🪙 {fmtChips(teamData.spentChips)}
+                <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Spent Chips</p>
+                <p className="text-3xl font-black text-slate-900 mt-1">
+                  {fmtChips(teamData.spentChips)}
                 </p>
                 <p className="text-xs text-slate-400 mt-1">Total invested in squad recruitment</p>
               </div>
 
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Squad Roster Size</p>
-                <p className="text-3xl font-black text-indigo-700 mt-1">
+                <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Squad Roster Size</p>
+                <p className="text-3xl font-black text-blue-700 mt-1">
                   {teamData.squad?.length || 0} / {teamData.squadLimit || 15}
                 </p>
                 <p className="text-xs text-slate-400 mt-1">Athletes acquired on the hammer</p>
               </div>
             </div>
 
-            {/* Team Squad Roster */}
             <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
                 <div>
@@ -204,19 +200,19 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <Link to="/players">
-                  <Button size="sm" variant="outline">Browse Available Players</Button>
+                  <Button size="sm" variant="outline" className="font-bold">Browse Available Players</Button>
                 </Link>
               </div>
 
               {(!teamData.squad || teamData.squad.length === 0) ? (
                 <div className="p-10 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  <span className="text-4xl block mb-2">📋</span>
+                  <OwnerIcon className="w-10 h-10 text-slate-400 mx-auto mb-2" />
                   <p className="text-sm font-bold text-slate-800">Your squad is currently empty</p>
                   <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto mb-4">
                     Join live auction rooms to place chip bids and sign players to your franchise.
                   </p>
                   <Link to="/">
-                    <Button size="sm">Go to Live Auctions</Button>
+                    <Button size="sm" variant="dark">Go to Live Auctions</Button>
                   </Link>
                 </div>
               ) : (
@@ -244,8 +240,8 @@ export default function Dashboard() {
 
                       <div className="text-right">
                         <span className="text-[10px] font-bold text-slate-400 uppercase block">Won for</span>
-                        <span className="text-sm font-black text-indigo-700">
-                          🪙 {fmtChips(player.price)}
+                        <span className="text-sm font-black text-slate-900">
+                          {fmtChips(player.price)}
                         </span>
                       </div>
                     </div>
@@ -259,7 +255,6 @@ export default function Dashboard() {
         {/* ATHLETE / PLAYER DASHBOARD */}
         {isPlayer && playerData && (
           <div className="space-y-6">
-            {/* Player Status Card */}
             <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
                 <div>
@@ -268,41 +263,39 @@ export default function Dashboard() {
                 </div>
                 <div>
                   {playerData.status === 'sold' ? (
-                    <span className="bg-emerald-500 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-sm">
-                      ✓ SOLD to {playerData.soldToTeamName}
+                    <span className="bg-emerald-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-sm">
+                      SOLD to {playerData.soldToTeamName}
                     </span>
                   ) : playerData.status === 'in_auction' ? (
-                    <span className="bg-amber-500 text-slate-950 font-black text-xs px-3 py-1.5 rounded-xl shadow-sm animate-pulse">
-                      🔥 IN LIVE AUCTION NOW
+                    <span className="bg-blue-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-sm animate-pulse">
+                      IN LIVE AUCTION NOW
                     </span>
                   ) : playerData.status === 'unsold' ? (
                     <span className="bg-slate-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">
-                      Unsold (Will enter round 2)
+                      Unsold
                     </span>
                   ) : (
-                    <span className="bg-indigo-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">
-                      🟢 Available in Auction Pool
+                    <span className="bg-slate-900 text-white font-bold text-xs px-3 py-1.5 rounded-xl">
+                      Available in Pool
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Sold Details Banner */}
               {playerData.status === 'sold' && (
                 <div className="mt-6 p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase">Contract Awarded</span>
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Contract Awarded</span>
                     <h3 className="text-lg font-black text-emerald-950">{playerData.soldToTeamName}</h3>
                     <p className="text-xs text-emerald-800">Franchise Owner: {playerData.soldToOwnerName}</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase">Winning Bid</span>
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Winning Bid</span>
                     <p className="text-2xl font-black text-emerald-900">{fmtChips(playerData.soldPrice)}</p>
                   </div>
                 </div>
               )}
 
-              {/* Career Stats Grid */}
               <div className="mt-6">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
                   Registered Career Statistics
@@ -322,7 +315,7 @@ export default function Dashboard() {
                   </div>
                   <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Base Price</span>
-                    <span className="text-sm font-black text-indigo-700">{fmtChips(playerData.basePrice)}</span>
+                    <span className="text-sm font-black text-blue-700">{fmtChips(playerData.basePrice)}</span>
                   </div>
                 </div>
               </div>
@@ -364,7 +357,7 @@ export default function Dashboard() {
             {isPlayer && (
               <>
                 <Input
-                  label="Auction Base Price (Chips 🪙)"
+                  label="Auction Base Price (Chips)"
                   id="editBasePrice"
                   type="number"
                   value={editBasePrice}
@@ -380,7 +373,7 @@ export default function Dashboard() {
                     rows={3}
                     value={editBio}
                     onChange={(e) => setEditBio(e.target.value)}
-                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
               </>
@@ -389,7 +382,8 @@ export default function Dashboard() {
             <Button
               type="submit"
               disabled={saving}
-              className="bg-indigo-600 font-bold px-8 mt-2"
+              variant="dark"
+              className="font-bold px-8 mt-2"
             >
               {saving ? 'Saving changes…' : 'Save Profile Changes'}
             </Button>

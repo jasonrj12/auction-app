@@ -7,6 +7,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import Notice from '../components/Notice';
 import PhotoPicker from '../components/PhotoPicker';
+import { TrophyIcon, PlayerIcon, OwnerIcon, InfoIcon } from '../components/Icons';
 import { validatePhone, validateDob } from '../lib/validators';
 import { friendlyError } from '../lib/errors';
 import { useToast } from '../context/ToastContext';
@@ -167,7 +168,7 @@ export default function Register() {
         phone: form.phone.trim(),
         dob: form.dob,
         photoData: photoData || '',
-        role: roleType, // 'player' or 'bidder'
+        role: roleType,
         disabled: false,
         createdAt: serverTimestamp(),
       });
@@ -196,7 +197,7 @@ export default function Register() {
           createdUser
         );
 
-        addToast('Player registration successful! You are now in the auction pool.', 'success');
+        addToast('Player registration successful. You are in the auction pool.', 'success');
         navigate('/players');
       } else {
         await registerTeam(
@@ -214,7 +215,7 @@ export default function Register() {
           createdUser
         );
 
-        addToast(`Team '${bidderForm.teamName}' registered! Purse: 100,000 Chips.`, 'success');
+        addToast(`Team '${bidderForm.teamName}' registered with 100,000 Chips.`, 'success');
         navigate('/teams');
       }
     } catch (err) {
@@ -231,8 +232,8 @@ export default function Register() {
         
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center text-2xl mx-auto mb-3 shadow-md shadow-amber-500/10">
-            🏆
+          <div className="w-12 h-12 rounded-2xl bg-slate-900 text-blue-400 flex items-center justify-center mx-auto mb-3 shadow-sm">
+            <TrophyIcon className="w-6 h-6" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Sports Auction Registration
@@ -243,17 +244,17 @@ export default function Register() {
         </div>
 
         {/* Role Toggle Switch */}
-        <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl mb-8">
+        <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-2xl mb-8">
           <button
             type="button"
             onClick={() => setRoleType('player')}
             className={`py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
               roleType === 'player'
-                ? 'bg-white text-indigo-700 shadow-sm'
+                ? 'bg-slate-900 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>🏃</span>
+            <PlayerIcon className="w-4 h-4" />
             <span>Sports Player</span>
           </button>
           <button
@@ -261,12 +262,12 @@ export default function Register() {
             onClick={() => setRoleType('bidder')}
             className={`py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
               roleType === 'bidder'
-                ? 'bg-white text-amber-700 shadow-sm'
+                ? 'bg-slate-900 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>👑</span>
-            <span>Bidder / Team Owner</span>
+            <OwnerIcon className="w-4 h-4" />
+            <span>Team Owner</span>
           </button>
         </div>
 
@@ -280,7 +281,7 @@ export default function Register() {
           {/* Section: Personal Info */}
           <div>
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-              {roleType === 'player' ? 'Player Profile & Details' : 'Owner Profile Details'}
+              {roleType === 'player' ? 'Player Profile Details' : 'Owner Profile Details'}
             </h3>
 
             <div className="flex flex-col items-center justify-center mb-4">
@@ -299,7 +300,7 @@ export default function Register() {
               <Input
                 label="Full name"
                 id="name"
-                placeholder={roleType === 'player' ? 'e.g. David Miller' : 'e.g. Mukesh Ambani'}
+                placeholder={roleType === 'player' ? 'e.g. David Miller' : 'e.g. Arthur Blank'}
                 value={form.name}
                 onChange={updateCommon('name')}
                 error={fieldErrors.name}
@@ -375,7 +376,7 @@ export default function Register() {
                       const defaultRole = ROLES_BY_SPORT[newSport] ? ROLES_BY_SPORT[newSport][0] : 'Player';
                       setPlayerForm((prev) => ({ ...prev, sport: newSport, role: defaultRole }));
                     }}
-                    className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                    className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
                   >
                     {SPORTS_OPTIONS.map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -391,7 +392,7 @@ export default function Register() {
                     <select
                       value={playerForm.role}
                       onChange={updatePlayer('role')}
-                      className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                      className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
                     >
                       {ROLES_BY_SPORT[playerForm.sport].map((r) => (
                         <option key={r} value={r}>{r}</option>
@@ -418,13 +419,13 @@ export default function Register() {
                 />
 
                 <Input
-                  label="Auction Base Price (Chips 🪙)"
+                  label="Auction Base Price (Chips)"
                   id="basePrice"
                   type="number"
                   placeholder="e.g. 5000"
                   value={playerForm.basePrice}
                   onChange={updatePlayer('basePrice')}
-                  helper="Minimum chip price to open bidding"
+                  helper="Opening bid amount in chips"
                   required
                 />
               </div>
@@ -459,8 +460,8 @@ export default function Register() {
                 </label>
                 <textarea
                   rows={2}
-                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-                  placeholder="Tell team owners about your career highlights, previous leagues, or awards..."
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                  placeholder="Career highlights, previous leagues, or awards..."
                   value={playerForm.bio}
                   onChange={updatePlayer('bio')}
                 />
@@ -510,7 +511,7 @@ export default function Register() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                 <Input
-                  label="Allocated Chip Purse 🪙"
+                  label="Allocated Chip Purse"
                   id="initialChips"
                   type="number"
                   value={bidderForm.initialChips}
@@ -529,12 +530,12 @@ export default function Register() {
                 />
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mt-4">
-                <p className="text-xs text-amber-900 font-semibold flex items-center gap-1.5">
-                  <span>💡</span>
-                  <span>Team Owner Notice:</span>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mt-4">
+                <p className="text-xs text-slate-800 font-bold flex items-center gap-1.5">
+                  <InfoIcon className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Team Owner Allocation:</span>
                 </p>
-                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                   As a Team Owner, you will be allocated <strong>100,000 Chips</strong> in your purse to bid on and purchase players in live sports auctions.
                 </p>
               </div>
@@ -545,7 +546,7 @@ export default function Register() {
             type="submit"
             disabled={submitting}
             size="lg"
-            className="w-full shadow-md mt-6 bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 hover:from-indigo-700 hover:to-violet-800"
+            className="w-full bg-slate-900 hover:bg-black font-bold shadow-md mt-6"
           >
             {submitting
               ? 'Creating your account…'
@@ -560,7 +561,7 @@ export default function Register() {
             Already registered?{' '}
             <Link
               to="/login"
-              className="font-bold text-indigo-600 hover:text-indigo-800 transition"
+              className="font-bold text-blue-600 hover:text-blue-800 transition"
             >
               Log in here
             </Link>

@@ -8,21 +8,17 @@ import {
   doc,
   updateDoc,
   deleteDoc,
-  getDocs,
-  Timestamp,
-  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { fmtChips } from '../lib/format';
-import { friendlyError } from '../lib/errors';
 import { subscribeAllPlayers, deletePlayer } from '../services/players';
 import { subscribeAllTeams, setTeamChips, deleteTeam } from '../services/teams';
 import { seedSampleSportsData } from '../services/sampleData';
+import { ShieldIcon, TrophyIcon, PlayerIcon, OwnerIcon } from '../components/Icons';
 import Tabs from '../components/Tabs';
 import Chip from '../components/Chip';
-import Avatar from '../components/Avatar';
 import Button from '../components/Button';
 import Input from '../components/Input';
 
@@ -43,7 +39,10 @@ export default function Admin() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              <span className="w-9 h-9 rounded-xl bg-slate-900 text-blue-400 flex items-center justify-center">
+                <ShieldIcon className="w-5 h-5" />
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 Tournament Admin Console
               </h1>
               <Chip label="ADMIN" type="admin" />
@@ -53,7 +52,7 @@ export default function Admin() {
             </p>
           </div>
           <Link to="/create">
-            <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 font-bold">
+            <Button variant="dark" className="font-bold">
               + Create Sports Auction
             </Button>
           </Link>
@@ -102,7 +101,7 @@ function OverviewTab() {
     setSeeding(true);
     try {
       await seedSampleSportsData(user, profile);
-      addToast('Sample sports players and teams loaded successfully!', 'success');
+      addToast('Sample sports players and teams loaded successfully.', 'success');
     } catch (err) {
       console.error('Seed error:', err);
       addToast('Error seeding sample data.', 'error');
@@ -111,7 +110,6 @@ function OverviewTab() {
     }
   };
 
-  const totalPurse = teams.reduce((acc, t) => acc + (t.totalChips || 0), 0);
   const totalSpent = teams.reduce((acc, t) => acc + (t.spentChips || 0), 0);
   const totalSold = players.filter((p) => p.status === 'sold').length;
 
@@ -120,39 +118,40 @@ function OverviewTab() {
       {/* Stat Tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p className="text-xs font-bold text-slate-400 uppercase">Registered Athletes</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Registered Athletes</p>
           <p className="text-3xl font-black text-slate-900 mt-1">{players.length}</p>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p className="text-xs font-bold text-indigo-600 uppercase">Franchise Teams</p>
-          <p className="text-3xl font-black text-indigo-700 mt-1">{teams.length}</p>
+          <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Franchise Teams</p>
+          <p className="text-3xl font-black text-blue-700 mt-1">{teams.length}</p>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p className="text-xs font-bold text-emerald-600 uppercase">Athletes Sold</p>
+          <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Athletes Sold</p>
           <p className="text-3xl font-black text-emerald-700 mt-1">{totalSold}</p>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <p className="text-xs font-bold text-amber-600 uppercase">Chips Spent</p>
-          <p className="text-2xl font-black text-amber-700 mt-1">{fmtChips(totalSpent)}</p>
+          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Chips Spent</p>
+          <p className="text-2xl font-black text-slate-900 mt-1">{fmtChips(totalSpent)}</p>
         </div>
       </div>
 
       {/* Demo Seed Box */}
-      <div className="bg-gradient-to-r from-indigo-50 to-amber-50 border border-indigo-100 p-6 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-slate-100 border border-slate-200 p-6 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-base font-black text-slate-900">
             Quick-Start Demo Data
           </h3>
           <p className="text-xs text-slate-600 mt-0.5">
-            Instantly populate high-profile Cricket & Football stars (Kohli, Bumrah, Mbappé, Bellingham) and 4 teams with 100,000 chip purses.
+            Instantly populate high-profile sports stars and 4 teams with 100,000 chip purses for testing.
           </p>
         </div>
         <Button
           onClick={handleSeed}
           disabled={seeding}
-          className="bg-indigo-600 hover:bg-indigo-700 font-bold whitespace-nowrap"
+          variant="dark"
+          className="font-bold whitespace-nowrap"
         >
-          {seeding ? 'Populating...' : 'Seed Sample Sports Data ⚡'}
+          {seeding ? 'Populating...' : 'Seed Sample Sports Data'}
         </Button>
       </div>
     </div>
@@ -198,7 +197,7 @@ function PlayersTab() {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-400 uppercase">
+            <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider">
               <th className="py-3 px-3">Player</th>
               <th className="py-3 px-3">Sport & Role</th>
               <th className="py-3 px-3">Base Price</th>
@@ -217,11 +216,11 @@ function PlayersTab() {
                   <span>{p.name}</span>
                 </td>
                 <td className="py-3 px-3 text-slate-600">{p.sport} • {p.role}</td>
-                <td className="py-3 px-3 font-bold text-indigo-700">{fmtChips(p.basePrice)}</td>
+                <td className="py-3 px-3 font-bold text-blue-700">{fmtChips(p.basePrice)}</td>
                 <td className="py-3 px-3">
                   <span className={`px-2 py-0.5 rounded font-black text-[10px] uppercase ${
                     p.status === 'sold' ? 'bg-emerald-100 text-emerald-800' :
-                    p.status === 'in_auction' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+                    p.status === 'in_auction' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-700'
                   }`}>
                     {p.status || 'Available'}
                   </span>
@@ -288,7 +287,7 @@ function TeamsTab() {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-400 uppercase">
+            <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider">
               <th className="py-3 px-3">Franchise</th>
               <th className="py-3 px-3">Owner Details</th>
               <th className="py-3 px-3">Remaining Purse</th>
@@ -301,7 +300,7 @@ function TeamsTab() {
             {teams.map((t) => (
               <tr key={t.id} className="hover:bg-slate-50">
                 <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs overflow-hidden">
+                  <div className="w-8 h-8 rounded-lg bg-slate-900 text-blue-400 flex items-center justify-center font-bold text-xs overflow-hidden">
                     {t.teamLogo ? <img src={t.teamLogo} alt={t.teamName} className="w-full h-full object-cover" /> : t.teamShortCode || 'TM'}
                   </div>
                   <div>
@@ -313,7 +312,7 @@ function TeamsTab() {
                   <span className="font-bold">{t.ownerName}</span>
                   <span className="text-[10px] text-slate-400 block">{t.ownerEmail}</span>
                 </td>
-                <td className="py-3 px-3 font-black text-emerald-700">
+                <td className="py-3 px-3 font-black text-emerald-800">
                   {editChipsId === t.id ? (
                     <div className="flex items-center gap-1">
                       <input
@@ -326,10 +325,10 @@ function TeamsTab() {
                       <button onClick={() => setEditChipsId(null)} className="text-slate-400">✕</button>
                     </div>
                   ) : (
-                    <span>🪙 {fmtChips(t.remainingChips)}</span>
+                    <span>{fmtChips(t.remainingChips)}</span>
                   )}
                 </td>
-                <td className="py-3 px-3 text-amber-700 font-bold">{fmtChips(t.spentChips)}</td>
+                <td className="py-3 px-3 text-slate-800 font-bold">{fmtChips(t.spentChips)}</td>
                 <td className="py-3 px-3">{t.squad?.length || 0} / {t.squadLimit || 15}</td>
                 <td className="py-3 px-3 text-right space-x-2">
                   <Button
@@ -386,7 +385,7 @@ function AuctionsTab() {
           <p className="text-xs text-slate-500">Monitor active tournament rooms and live rounds</p>
         </div>
         <Link to="/create">
-          <Button size="sm">+ New Auction</Button>
+          <Button size="sm" variant="dark">+ New Auction</Button>
         </Link>
       </div>
 
@@ -395,7 +394,7 @@ function AuctionsTab() {
           <div key={auc.id} className="py-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <Link to={`/auction/${auc.id}`} className="font-black text-sm text-slate-900 hover:text-indigo-600">
+                <Link to={`/auction/${auc.id}`} className="font-black text-sm text-slate-900 hover:text-blue-600">
                   {auc.title}
                 </Link>
                 <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded">
@@ -463,7 +462,7 @@ function UsersTab() {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-400 uppercase">
+            <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider">
               <th className="py-3 px-3">User</th>
               <th className="py-3 px-3">Email</th>
               <th className="py-3 px-3">Role</th>

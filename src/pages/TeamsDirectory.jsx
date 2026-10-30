@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { subscribeAllTeams } from '../services/teams';
 import { fmtChips } from '../lib/format';
-import Avatar from '../components/Avatar';
-import Chip from '../components/Chip';
+import { OwnerIcon, ShieldIcon } from '../components/Icons';
 import Button from '../components/Button';
 import Input from '../components/Input';
 
@@ -56,9 +55,11 @@ export default function TeamsDirectory() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="text-3xl">👑</span>
+              <span className="w-10 h-10 rounded-xl bg-slate-900 text-blue-400 flex items-center justify-center">
+                <OwnerIcon className="w-5 h-5" />
+              </span>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                Bidders & Team Owners
+                Team Owners & Franchises
               </h1>
             </div>
             <p className="text-slate-500 text-sm mt-1">
@@ -74,16 +75,16 @@ export default function TeamsDirectory() {
             <p className="text-2xl font-black text-slate-900 mt-1">{metrics.totalTeams}</p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Total Purse Budget</p>
-            <p className="text-2xl font-black text-indigo-600 mt-1">{fmtChips(metrics.totalCirculation)}</p>
+            <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Total Purse Budget</p>
+            <p className="text-2xl font-black text-blue-700 mt-1">{fmtChips(metrics.totalCirculation)}</p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Chips Spent</p>
-            <p className="text-2xl font-black text-amber-600 mt-1">{fmtChips(metrics.totalSpent)}</p>
+            <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Chips Spent</p>
+            <p className="text-2xl font-black text-slate-900 mt-1">{fmtChips(metrics.totalSpent)}</p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Players Acquired</p>
-            <p className="text-2xl font-black text-emerald-600 mt-1">{metrics.totalPlayersBought}</p>
+            <p className="text-2xl font-black text-emerald-700 mt-1">{metrics.totalPlayersBought}</p>
           </div>
         </div>
 
@@ -101,7 +102,7 @@ export default function TeamsDirectory() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               >
                 <option value="remainingChips-desc">Highest Remaining Purse</option>
                 <option value="remainingChips-asc">Lowest Remaining Purse</option>
@@ -116,12 +117,12 @@ export default function TeamsDirectory() {
         {/* Teams Grid */}
         {loading ? (
           <div className="py-20 text-center">
-            <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm font-semibold text-slate-500">Loading team owners...</p>
           </div>
         ) : filteredTeams.length === 0 ? (
           <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto">
-            <span className="text-4xl block mb-3">🛡️</span>
+            <ShieldIcon className="w-10 h-10 text-slate-400 mx-auto mb-3" />
             <h3 className="text-lg font-bold text-slate-900 mb-1">No team owners found</h3>
             <p className="text-sm text-slate-500">
               Register as a Team Owner to start bidding on sports players.
@@ -173,7 +174,7 @@ function TeamCard({ team, onViewSquad }) {
               className="w-16 h-16 rounded-2xl object-cover border border-slate-200 shadow-sm flex-shrink-0"
             />
           ) : (
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-indigo-600 text-white font-black text-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-slate-900 text-blue-400 font-black text-xl flex items-center justify-center flex-shrink-0 shadow-sm">
               {team.teamShortCode || team.teamName?.slice(0, 2).toUpperCase() || 'TM'}
             </div>
           )}
@@ -204,14 +205,14 @@ function TeamCard({ team, onViewSquad }) {
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-500 font-bold uppercase text-[10px]">Remaining Purse</span>
             <span className="text-emerald-700 font-black text-sm">
-              🪙 {fmtChips(remainingChips)}
+              {fmtChips(remainingChips)}
             </span>
           </div>
 
           {/* Progress Bar */}
           <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-amber-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
+              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
               style={{ width: `${spentPercent}%` }}
             />
           </div>
@@ -231,7 +232,7 @@ function TeamCard({ team, onViewSquad }) {
 
           {squad.length === 0 ? (
             <p className="text-xs text-slate-400 italic bg-slate-50/50 p-3 rounded-xl border border-dashed border-slate-200 text-center">
-              No players acquired yet. Ready for live auctions!
+              No players acquired yet. Ready for live auctions.
             </p>
           ) : (
             <div className="flex items-center -space-x-2 overflow-hidden py-1">
@@ -249,7 +250,7 @@ function TeamCard({ team, onViewSquad }) {
                 </div>
               ))}
               {squad.length > 5 && (
-                <div className="w-9 h-9 rounded-full border-2 border-white bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shadow-sm">
+                <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-200 text-slate-800 flex items-center justify-center text-xs font-bold shadow-sm">
                   +{squad.length - 5}
                 </div>
               )}
@@ -264,7 +265,7 @@ function TeamCard({ team, onViewSquad }) {
           variant="outline"
           size="sm"
           onClick={onViewSquad}
-          className="w-full border-slate-200 hover:bg-slate-50 font-bold"
+          className="w-full font-bold"
         >
           View Team Squad & Finances
         </Button>
@@ -292,7 +293,7 @@ function TeamRosterModal({ team, onClose }) {
                 className="w-12 h-12 rounded-xl object-cover border border-slate-200"
               />
             ) : (
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 text-white font-black text-lg flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-slate-900 text-blue-400 font-black text-lg flex items-center justify-center">
                 {team.teamShortCode || 'TM'}
               </div>
             )}
@@ -316,16 +317,16 @@ function TeamRosterModal({ team, onClose }) {
         {/* Financial Summary */}
         <div className="p-6 bg-white border-b border-slate-100 grid grid-cols-3 gap-3 text-center">
           <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
-            <span className="text-[10px] font-bold text-emerald-700 uppercase block">Remaining Purse</span>
+            <span className="text-[10px] font-bold text-emerald-800 uppercase block">Remaining Purse</span>
             <span className="text-base font-black text-emerald-800">{fmtChips(remainingChips)}</span>
           </div>
-          <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100">
-            <span className="text-[10px] font-bold text-amber-700 uppercase block">Spent Chips</span>
-            <span className="text-base font-black text-amber-800">{fmtChips(spentChips)}</span>
+          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+            <span className="text-[10px] font-bold text-slate-600 uppercase block">Spent Chips</span>
+            <span className="text-base font-black text-slate-900">{fmtChips(spentChips)}</span>
           </div>
-          <div className="p-3 bg-indigo-50 rounded-2xl border border-indigo-100">
-            <span className="text-[10px] font-bold text-indigo-700 uppercase block">Total Purse</span>
-            <span className="text-base font-black text-indigo-800">{fmtChips(totalChips)}</span>
+          <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100">
+            <span className="text-[10px] font-bold text-blue-800 uppercase block">Total Purse</span>
+            <span className="text-base font-black text-blue-900">{fmtChips(totalChips)}</span>
           </div>
         </div>
 
@@ -337,7 +338,7 @@ function TeamRosterModal({ team, onClose }) {
 
           {squad.length === 0 ? (
             <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200">
-              <span className="text-3xl block mb-2">📋</span>
+              <ShieldIcon className="w-8 h-8 text-slate-400 mx-auto mb-2" />
               <p className="text-sm font-bold text-slate-700">No players won in auction yet</p>
               <p className="text-xs text-slate-400 mt-1">
                 Participate in live auctions to bid on players using your chips.
@@ -368,8 +369,8 @@ function TeamRosterModal({ team, onClose }) {
 
                   <div className="text-right">
                     <span className="text-[10px] font-bold text-slate-400 uppercase block">Purchased For</span>
-                    <span className="text-sm font-black text-indigo-700">
-                      🪙 {fmtChips(player.price)}
+                    <span className="text-sm font-black text-slate-900">
+                      {fmtChips(player.price)}
                     </span>
                   </div>
                 </div>
@@ -380,7 +381,7 @@ function TeamRosterModal({ team, onClose }) {
 
         {/* Footer */}
         <div className="p-6 pt-3 border-t border-slate-100">
-          <Button onClick={onClose} size="lg" className="w-full">
+          <Button onClick={onClose} size="lg" variant="dark" className="w-full">
             Done
           </Button>
         </div>

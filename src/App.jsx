@@ -4,6 +4,7 @@ import Toaster from './components/Toaster';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import { firebaseReady } from './lib/firebase';
+import { KeyIcon } from './components/Icons';
 
 import Home from './pages/Home';
 import AuctionDetail from './pages/AuctionDetail';
@@ -19,21 +20,21 @@ import NotFound from './pages/NotFound';
 export default function App() {
   if (!firebaseReady) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
         <div className="max-w-lg w-full bg-white rounded-3xl border border-slate-200 p-8 sm:p-10 shadow-sm text-center">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-3xl mx-auto mb-5">
-            🔑
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-5">
+            <KeyIcon className="w-8 h-8" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-3">
-            Almost there!
+            Configuration Required
           </h1>
           <p className="text-slate-600 text-sm leading-relaxed mb-6">
             To start using <strong>Bidly Sports</strong>, configure your Firebase credentials in your{' '}
-            <code className="bg-slate-100 text-indigo-700 px-2 py-0.5 rounded font-mono text-xs font-semibold">
+            <code className="bg-slate-100 text-blue-700 px-2 py-0.5 rounded font-mono text-xs font-semibold">
               .env
             </code>{' '}
             file. Copy the template from{' '}
-            <code className="bg-slate-100 text-indigo-700 px-2 py-0.5 rounded font-mono text-xs font-semibold">
+            <code className="bg-slate-100 text-blue-700 px-2 py-0.5 rounded font-mono text-xs font-semibold">
               .env.example
             </code>{' '}
             and fill in your Firebase Web App configuration.

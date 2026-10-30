@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getTeamByUserId } from '../services/teams';
 import { fmtChips } from '../lib/format';
+import { TrophyIcon, PlayerIcon, OwnerIcon, PlusIcon, ShieldIcon, ChipIcon } from './Icons';
 import Avatar from './Avatar';
 import Chip from './Chip';
 import Button from './Button';
@@ -43,14 +44,17 @@ export default function Navbar() {
           {/* Logo */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 font-extrabold text-xl text-indigo-600 group"
+            className="flex items-center gap-2.5 group"
           >
-            <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-sm group-hover:scale-105 transition-transform">
-              🏆
+            <span className="w-9 h-9 rounded-xl bg-slate-900 text-blue-400 flex items-center justify-center font-black shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
+              <TrophyIcon className="w-5 h-5" />
             </span>
-            <div className="flex flex-col">
-              <span className="tracking-tight text-slate-900 leading-tight font-black group-hover:text-indigo-600 transition-colors">
-                Bidly <span className="text-indigo-600 font-extrabold text-xs uppercase bg-indigo-50 px-1.5 py-0.5 rounded">Sports</span>
+            <div className="flex items-center gap-1.5">
+              <span className="tracking-tight text-slate-900 text-lg font-black leading-tight">
+                BIDLY
+              </span>
+              <span className="text-[10px] tracking-wider uppercase font-extrabold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                Sports
               </span>
             </div>
           </Link>
@@ -59,42 +63,41 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-6">
             <Link
               to="/"
-              className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                isActive('/') ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'
+              className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
+                isActive('/') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>⚡</span>
               <span>Auctions</span>
             </Link>
 
             <Link
               to="/players"
-              className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                isActive('/players') ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'
+              className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
+                isActive('/players') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>🏃</span>
+              <PlayerIcon className="w-4 h-4" />
               <span>Players Pool</span>
             </Link>
 
             <Link
               to="/teams"
-              className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                isActive('/teams') ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'
+              className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
+                isActive('/teams') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>👑</span>
+              <OwnerIcon className="w-4 h-4" />
               <span>Team Owners</span>
             </Link>
 
             {isAdmin && (
               <Link
                 to="/create"
-                className={`text-sm font-semibold transition-colors flex items-center gap-1 ${
-                  isActive('/create') ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'
+                className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
+                  isActive('/create') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span>➕</span>
+                <PlusIcon className="w-3.5 h-3.5" />
                 <span>Create Auction</span>
               </Link>
             )}
@@ -102,14 +105,14 @@ export default function Navbar() {
             {isAdmin && (
               <Link
                 to="/admin"
-                className={`text-sm font-semibold flex items-center gap-1.5 transition-colors ${
+                className={`text-sm font-bold flex items-center gap-1.5 transition-colors ${
                   location.pathname.startsWith('/admin')
-                    ? 'text-violet-600'
-                    : 'text-slate-600 hover:text-violet-600'
+                    ? 'text-blue-600'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
+                <ShieldIcon className="w-4 h-4" />
                 <span>Admin Console</span>
-                <Chip label="ADMIN" type="admin" className="text-[10px] py-0 px-1.5" />
               </Link>
             )}
           </div>
@@ -118,10 +121,10 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             {/* Bidder Chip Purse Badge */}
             {userTeam && (
-              <div className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
-                <span className="text-amber-700 font-bold">Purse:</span>
-                <span className="font-black text-amber-900">
-                  🪙 {fmtChips(userTeam.remainingChips)}
+              <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
+                <span className="text-emerald-800 font-bold uppercase text-[10px] tracking-wider">Purse:</span>
+                <span className="font-black text-emerald-900">
+                  {fmtChips(userTeam.remainingChips)}
                 </span>
               </div>
             )}
@@ -130,12 +133,12 @@ export default function Navbar() {
               <div className="flex items-center gap-3">
                 <Link
                   to="/login"
-                  className="text-sm font-semibold text-slate-600 hover:text-indigo-600 px-3 py-2 transition-colors"
+                  className="text-sm font-bold text-slate-700 hover:text-slate-900 px-3 py-2 transition-colors"
                 >
                   Log in
                 </Link>
                 <Link to="/register">
-                  <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-violet-600">
+                  <Button size="sm" variant="dark">
                     Register
                   </Button>
                 </Link>
@@ -156,7 +159,7 @@ export default function Navbar() {
                     <span className="text-xs font-bold text-slate-900 max-w-[120px] truncate leading-tight">
                       {profile?.displayName || user.email?.split('@')[0]}
                     </span>
-                    <span className="text-[10px] text-slate-500 font-medium capitalize">
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
                       {profile?.role === 'bidder' ? 'Team Owner' : profile?.role === 'player' ? 'Athlete' : profile?.role || 'User'}
                     </span>
                   </div>
@@ -197,43 +200,43 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-2">
           {userTeam && (
-            <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center justify-between text-xs mb-2">
-              <span className="text-amber-800 font-bold">Team Purse:</span>
-              <span className="font-black text-amber-900">🪙 {fmtChips(userTeam.remainingChips)}</span>
+            <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center justify-between text-xs mb-2">
+              <span className="text-emerald-800 font-bold uppercase">Team Purse:</span>
+              <span className="font-black text-emerald-950">{fmtChips(userTeam.remainingChips)}</span>
             </div>
           )}
 
           <Link
             to="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
           >
-            ⚡ Live Auctions
+            Live Auctions
           </Link>
 
           <Link
             to="/players"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
           >
-            🏃 Players Directory
+            Players Directory
           </Link>
 
           <Link
             to="/teams"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
           >
-            👑 Team Owners & Bidders
+            Team Owners & Bidders
           </Link>
 
           {isAdmin && (
             <Link
               to="/create"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
             >
-              ➕ Create Sports Auction
+              Create Sports Auction
             </Link>
           )}
 
@@ -241,9 +244,9 @@ export default function Navbar() {
             <Link
               to="/admin"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-xl text-sm font-semibold text-violet-700 hover:bg-violet-50"
+              className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-900 hover:bg-slate-50"
             >
-              🛡️ Admin Console
+              Admin Console
             </Link>
           )}
 
@@ -253,14 +256,14 @@ export default function Navbar() {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block text-center px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-xl"
+                  className="block text-center px-4 py-2 text-sm font-bold text-slate-700 bg-slate-100 rounded-xl"
                 >
                   Log in
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block text-center px-4 py-2 text-sm font-bold text-white bg-indigo-600 rounded-xl"
+                  className="block text-center px-4 py-2 text-sm font-bold text-white bg-slate-900 rounded-xl"
                 >
                   Register
                 </Link>
@@ -270,13 +273,13 @@ export default function Navbar() {
                 <Link
                   to="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-slate-50"
+                  className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 bg-slate-50"
                 >
                   My Dashboard
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50"
+                  className="w-full text-left px-3 py-2 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50"
                 >
                   Log out
                 </button>

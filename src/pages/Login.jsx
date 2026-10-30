@@ -5,6 +5,7 @@ import { auth } from '../lib/firebase';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Notice from '../components/Notice';
+import { TrophyIcon } from '../components/Icons';
 import { friendlyError } from '../lib/errors';
 import { useToast } from '../context/ToastContext';
 
@@ -66,10 +67,10 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6">
       <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 sm:p-10 shadow-sm">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-2xl mx-auto mb-4 shadow-sm">
-            🏆
+          <div className="w-12 h-12 rounded-2xl bg-slate-900 text-blue-400 flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <TrophyIcon className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Log in to Bidly Sports
           </h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -88,51 +89,57 @@ export default function Login() {
             label="Email address"
             id="email"
             type="email"
-            autoComplete="email"
+            placeholder="name@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
             required
+            autoComplete="email"
           />
 
-          <Input
-            label="Password"
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-          />
-
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              disabled={resetting}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition disabled:opacity-50"
-            >
-              {resetting ? 'Sending link…' : 'Forgot password?'}
-            </button>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label
+                htmlFor="password"
+                className="block text-xs font-bold text-slate-700 uppercase tracking-wider"
+              >
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={resetting}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition"
+              >
+                {resetting ? 'Sending…' : 'Forgot password?'}
+              </button>
+            </div>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
           </div>
 
           <Button
             type="submit"
             disabled={loading}
             size="lg"
-            className="w-full shadow-md mt-2"
+            className="w-full bg-slate-900 hover:bg-black font-bold shadow-md mt-2"
           >
-            {loading ? 'Logging in…' : 'Log In'}
+            {loading ? 'Authenticating…' : 'Sign In'}
           </Button>
         </form>
 
         <div className="mt-8 pt-6 border-t border-slate-100 text-center">
           <p className="text-sm text-slate-500">
-            Don't have an account yet?{' '}
+            Don't have an account?{' '}
             <Link
               to="/register"
-              className="font-bold text-indigo-600 hover:text-indigo-800 transition"
+              className="font-bold text-blue-600 hover:text-blue-800 transition"
             >
               Register here
             </Link>

@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Notice from '../components/Notice';
+import { TrophyIcon, AlertIcon } from '../components/Icons';
 import { friendlyError } from '../lib/errors';
 
 const SPORTS = [
@@ -20,7 +21,7 @@ const SPORTS = [
 ];
 
 export default function CreateAuction() {
-  const { user, profile, isAdmin, isBlocked } = useAuth();
+  const { user, profile, isBlocked } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
 
@@ -42,7 +43,9 @@ export default function CreateAuction() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 text-center shadow-sm">
-          <div className="text-4xl mb-3">🚫</div>
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
+            <AlertIcon className="w-6 h-6" />
+          </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Account Suspended</h2>
           <Notice type="error" className="mb-6 text-left">
             Your account has been suspended by an administrator.
@@ -90,7 +93,7 @@ export default function CreateAuction() {
 
     try {
       const auctionId = await createSportsAuction(form, user, profile);
-      addToast('Sports Auction room created successfully! Live round is ready.', 'success');
+      addToast('Sports Auction room created successfully. Live round is ready.', 'success');
       navigate(`/auction/${auctionId}`);
     } catch (err) {
       console.error('Failed to create sports auction:', err);
@@ -105,8 +108,8 @@ export default function CreateAuction() {
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-10 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
-            <span className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-2xl font-black">
-              🏆
+            <span className="w-12 h-12 rounded-2xl bg-slate-900 text-blue-400 flex items-center justify-center shadow-sm">
+              <TrophyIcon className="w-6 h-6" />
             </span>
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -143,7 +146,7 @@ export default function CreateAuction() {
                 <select
                   value={form.sport}
                   onChange={update('sport')}
-                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   {SPORTS.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -158,17 +161,17 @@ export default function CreateAuction() {
                 <select
                   value={form.status}
                   onChange={update('status')}
-                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
-                  <option value="live">🔴 Live (Bidding open immediately)</option>
-                  <option value="upcoming">⏳ Upcoming / Scheduled</option>
+                  <option value="live">Live (Bidding open immediately)</option>
+                  <option value="upcoming">Upcoming / Scheduled</option>
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Default Team Purse (Chips 🪙)"
+                label="Default Team Purse (Chips)"
                 id="defaultChips"
                 type="number"
                 value={form.defaultChips}
@@ -179,7 +182,7 @@ export default function CreateAuction() {
               />
 
               <Input
-                label="Minimum Bid Increment (Chips 🪙)"
+                label="Minimum Bid Increment (Chips)"
                 id="minIncrement"
                 type="number"
                 value={form.minIncrement}
@@ -209,7 +212,7 @@ export default function CreateAuction() {
                 placeholder="Specify tournament rules, max squad limit, overseas player rules, etc."
                 value={form.description}
                 onChange={update('description')}
-                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
@@ -218,14 +221,14 @@ export default function CreateAuction() {
                 type="button"
                 variant="outline"
                 onClick={() => navigate('/')}
-                className="flex-1"
+                className="flex-1 font-bold"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 font-bold"
+                className="flex-1 bg-slate-900 hover:bg-black font-bold"
               >
                 {submitting ? 'Launching Auction…' : 'Launch Sports Auction'}
               </Button>

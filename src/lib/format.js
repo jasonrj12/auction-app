@@ -1,6 +1,6 @@
 const currency = import.meta.env.VITE_CURRENCY || 'Chips';
 
-/** Format a number as Chips (e.g. "15,000 Chips" or "🪙 15,000 Chips") */
+/** Format a number as Chips (e.g. "15,000 Chips") without emojis */
 export function fmtChips(amount, includeUnit = true) {
   if (typeof amount !== 'number' || isNaN(amount)) {
     return includeUnit ? '0 Chips' : '0';
