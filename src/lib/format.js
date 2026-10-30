@@ -1,19 +1,32 @@
-const currency = import.meta.env.VITE_CURRENCY || 'LKR';
+const currency = import.meta.env.VITE_CURRENCY || 'Chips';
 
-/** Format a number as the configured currency */
+/** Format a number as Chips (e.g. "15,000 Chips" or "🪙 15,000 Chips") */
+export function fmtChips(amount, includeUnit = true) {
+  if (typeof amount !== 'number' || isNaN(amount)) {
+    return includeUnit ? '0 Chips' : '0';
+  }
+  const formatted = new Intl.NumberFormat('en-US').format(Math.round(amount));
+  return includeUnit ? `${formatted} Chips` : formatted;
+}
+
+/** Short chips notation (e.g. 50K, 1.2M) */
+export function fmtChipsCompact(amount) {
+  if (typeof amount !== 'number' || isNaN(amount)) return '0';
+  if (amount >= 1_000_000) {
+    return `${(amount / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  }
+  if (amount >= 1_000) {
+    return `${(amount / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  }
+  return amount.toString();
+}
+
+/** Format a number as the configured currency or chips */
 export function fmt(amount) {
   if (typeof amount !== 'number' || isNaN(amount)) {
-    return `${currency} 0`;
+    return '0 Chips';
   }
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${currency} ${Number(amount).toLocaleString()}`;
-  }
+  return fmtChips(amount);
 }
 
 /** Return a human-readable countdown string from a Firestore Timestamp or Date */

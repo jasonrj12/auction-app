@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getTeamByUserId } from '../services/teams';
+import { fmtChips } from '../lib/format';
 import Avatar from './Avatar';
 import Chip from './Chip';
 import Button from './Button';
@@ -10,6 +12,17 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userTeam, setUserTeam] = useState(null);
+
+  useEffect(() => {
+    if (user?.uid && profile?.role === 'bidder') {
+      getTeamByUserId(user.uid).then((team) => {
+        setUserTeam(team);
+      });
+    } else {
+      setUserTeam(null);
+    }
+  }, [user, profile]);
 
   const handleLogout = async () => {
     try {
@@ -32,33 +45,57 @@ export default function Navbar() {
             to="/"
             className="flex items-center gap-2.5 font-extrabold text-xl text-indigo-600 group"
           >
-            <span className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-black text-base shadow-sm group-hover:scale-105 transition-transform">
-              B
+            <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-sm group-hover:scale-105 transition-transform">
+              🏆
             </span>
-            <span className="tracking-tight text-slate-900 group-hover:text-indigo-600 transition-colors">
-              Bidly
-            </span>
+            <div className="flex flex-col">
+              <span className="tracking-tight text-slate-900 leading-tight font-black group-hover:text-indigo-600 transition-colors">
+                Bidly <span className="text-indigo-600 font-extrabold text-xs uppercase bg-indigo-50 px-1.5 py-0.5 rounded">Sports</span>
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center gap-6">
             <Link
               to="/"
-              className={`text-sm font-semibold transition-colors ${
+              className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                 isActive('/') ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'
               }`}
             >
-              Auctions
+              <span>⚡</span>
+              <span>Auctions</span>
             </Link>
 
-            {user && (
+            <Link
+              to="/players"
+              className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                isActive('/players') ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'
+              }`}
+            >
+              <span>🏃</span>
+              <span>Players Pool</span>
+            </Link>
+
+            <Link
+              to="/teams"
+              className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                isActive('/teams') ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'
+              }`}
+            >
+              <span>👑</span>
+              <span>Team Owners</span>
+            </Link>
+
+            {isAdmin && (
               <Link
                 to="/create"
-                className={`text-sm font-semibold transition-colors ${
+                className={`text-sm font-semibold transition-colors flex items-center gap-1 ${
                   isActive('/create') ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'
                 }`}
               >
-                Sell Item
+                <span>➕</span>
+                <span>Create Auction</span>
               </Link>
             )}
 
@@ -71,7 +108,7 @@ export default function Navbar() {
                     : 'text-slate-600 hover:text-violet-600'
                 }`}
               >
-                <span>Admin</span>
+                <span>Admin Console</span>
                 <Chip label="ADMIN" type="admin" className="text-[10px] py-0 px-1.5" />
               </Link>
             )}
@@ -79,6 +116,16 @@ export default function Navbar() {
 
           {/* Desktop User Section */}
           <div className="hidden md:flex items-center gap-4">
+            {/* Bidder Chip Purse Badge */}
+            {userTeam && (
+              <div className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
+                <span className="text-amber-700 font-bold">Purse:</span>
+                <span className="font-black text-amber-900">
+                  🪙 {fmtChips(userTeam.remainingChips)}
+                </span>
+              </div>
+            )}
+
             {!user ? (
               <div className="flex items-center gap-3">
                 <Link
@@ -88,14 +135,16 @@ export default function Navbar() {
                   Log in
                 </Link>
                 <Link to="/register">
-                  <Button size="sm">Register</Button>
+                  <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-violet-600">
+                    Register
+                  </Button>
                 </Link>
               </div>
             ) : (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <Link
                   to="/dashboard"
-                  className="flex items-center gap-2.5 px-2 py-1 rounded-xl hover:bg-slate-50 transition"
+                  className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200"
                   title="Go to Dashboard"
                 >
                   <Avatar
@@ -104,10 +153,12 @@ export default function Navbar() {
                     size="sm"
                   />
                   <div className="flex flex-col text-left">
-                    <span className="text-xs font-bold text-slate-900 max-w-[130px] truncate leading-tight">
+                    <span className="text-xs font-bold text-slate-900 max-w-[120px] truncate leading-tight">
                       {profile?.displayName || user.email?.split('@')[0]}
                     </span>
-                    <span className="text-[10px] text-slate-500 font-medium">Dashboard</span>
+                    <span className="text-[10px] text-slate-500 font-medium capitalize">
+                      {profile?.role === 'bidder' ? 'Team Owner' : profile?.role === 'player' ? 'Athlete' : profile?.role || 'User'}
+                    </span>
                   </div>
                 </Link>
 
@@ -123,19 +174,18 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile hamburger button */}
-          <div className="flex md:hidden items-center">
+          {/* Mobile menu button */}
+          <div className="flex md:hidden items-center gap-2">
             <button
-              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
+              className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 focus:outline-none"
               aria-label="Toggle navigation menu"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
@@ -145,22 +195,45 @@ export default function Navbar() {
 
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-3">
+        <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-2">
+          {userTeam && (
+            <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center justify-between text-xs mb-2">
+              <span className="text-amber-800 font-bold">Team Purse:</span>
+              <span className="font-black text-amber-900">🪙 {fmtChips(userTeam.remainingChips)}</span>
+            </div>
+          )}
+
           <Link
             to="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-base font-semibold text-slate-700 hover:text-indigo-600"
+            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
-            Auctions
+            ⚡ Live Auctions
           </Link>
 
-          {user && (
+          <Link
+            to="/players"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            🏃 Players Directory
+          </Link>
+
+          <Link
+            to="/teams"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            👑 Team Owners & Bidders
+          </Link>
+
+          {isAdmin && (
             <Link
               to="/create"
               onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 text-base font-semibold text-slate-700 hover:text-indigo-600"
+              className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              Sell Item
+              ➕ Create Sports Auction
             </Link>
           )}
 
@@ -168,52 +241,45 @@ export default function Navbar() {
             <Link
               to="/admin"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-between py-2 text-base font-semibold text-violet-700"
+              className="block px-3 py-2 rounded-xl text-sm font-semibold text-violet-700 hover:bg-violet-50"
             >
-              <span>Admin Panel</span>
-              <Chip label="ADMIN" type="admin" />
+              🛡️ Admin Console
             </Link>
           )}
 
           <div className="pt-3 border-t border-slate-100">
             {!user ? (
-              <div className="flex flex-col gap-2">
-                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full">
-                    Log in
-                  </Button>
+              <div className="space-y-2">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-center px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-xl"
+                >
+                  Log in
                 </Link>
-                <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
-                  <Button className="w-full">Register</Button>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-center px-4 py-2 text-sm font-bold text-white bg-indigo-600 rounded-xl"
+                >
+                  Register
                 </Link>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Link
                   to="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 py-2"
+                  className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-slate-50"
                 >
-                  <Avatar
-                    photoData={profile?.photoData}
-                    name={profile?.displayName || user.email}
-                    size="sm"
-                  />
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">
-                      {profile?.displayName || user.email}
-                    </p>
-                    <p className="text-xs text-slate-500">View dashboard & profile</p>
-                  </div>
+                  My Dashboard
                 </Link>
-                <Button
-                  variant="danger"
-                  size="sm"
+                <button
                   onClick={handleLogout}
-                  className="w-full"
+                  className="w-full text-left px-3 py-2 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50"
                 >
                   Log out
-                </Button>
+                </button>
               </div>
             )}
           </div>

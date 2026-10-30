@@ -7,6 +7,8 @@ import { firebaseReady } from './lib/firebase';
 
 import Home from './pages/Home';
 import AuctionDetail from './pages/AuctionDetail';
+import PlayersDirectory from './pages/PlayersDirectory';
+import TeamsDirectory from './pages/TeamsDirectory';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import CreateAuction from './pages/CreateAuction';
@@ -26,7 +28,7 @@ export default function App() {
             Almost there!
           </h1>
           <p className="text-slate-600 text-sm leading-relaxed mb-6">
-            To start using <strong>Bidly</strong>, configure your Firebase credentials in your{' '}
+            To start using <strong>Bidly Sports</strong>, configure your Firebase credentials in your{' '}
             <code className="bg-slate-100 text-indigo-700 px-2 py-0.5 rounded font-mono text-xs font-semibold">
               .env
             </code>{' '}
@@ -35,17 +37,6 @@ export default function App() {
               .env.example
             </code>{' '}
             and fill in your Firebase Web App configuration.
-          </p>
-
-          <div className="bg-slate-50 rounded-2xl p-4 text-left border border-slate-200 text-xs font-mono text-slate-700 space-y-1 mb-6">
-            <p className="text-slate-400 font-sans font-semibold mb-2">Required environment variables:</p>
-            <p>VITE_FIREBASE_API_KEY=...</p>
-            <p>VITE_FIREBASE_AUTH_DOMAIN=...</p>
-            <p>VITE_FIREBASE_PROJECT_ID=...</p>
-          </div>
-
-          <p className="text-xs text-slate-400">
-            Once saved, restart the Vite development server to launch Bidly.
           </p>
         </div>
       </div>
@@ -60,6 +51,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auction/:id" element={<AuctionDetail />} />
+          <Route path="/players" element={<PlayersDirectory />} />
+          <Route path="/teams" element={<TeamsDirectory />} />
+          <Route path="/bidders" element={<TeamsDirectory />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route

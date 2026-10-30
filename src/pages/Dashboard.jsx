@@ -1,145 +1,121 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  doc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  writeBatch,
-} from 'firebase/firestore';
-import { updateProfile, sendPasswordResetEmail } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { fmt } from '../lib/format';
-import { friendlyError } from '../lib/errors';
-import { validatePhone, validateDob } from '../lib/validators';
+import { getPlayerById, updatePlayer } from '../services/players';
+import { getTeamByUserId, updateTeam } from '../services/teams';
+import { fmtChips } from '../lib/format';
 import Avatar from '../components/Avatar';
-import Chip from '../components/Chip';
-import StatTile from '../components/StatTile';
-import Tabs from '../components/Tabs';
-import Notice from '../components/Notice';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import PhotoPicker from '../components/PhotoPicker';
-import AuctionCard from '../components/AuctionCard';
-import DataTable from '../components/DataTable';
-
-const TABS = [
-  { key: 'bids', label: 'My Bids' },
-  { key: 'listings', label: 'My Listings' },
-  { key: 'profile', label: 'Edit Profile' },
-];
 
 export default function Dashboard() {
-  const { user, profile, isAdmin, isBlocked, refreshProfile } = useAuth();
+  const { user, profile, isAdmin, refreshProfile } = useAuth();
   const { addToast } = useToast();
-  const [tab, setTab] = useState('bids');
 
-  // Real-time bids queries
-  const [bidAuctions, setBidAuctions] = useState([]);
-  const [leadingAuctions, setLeadingAuctions] = useState([]);
-  const [listings, setListings] = useState([]);
+  const isBidder = profile?.role === 'bidder';
+  const isPlayer = profile?.role === 'player';
+
+  const [playerData, setPlayerData] = useState(null);
+  const [teamData, setTeamData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Profile Edit Form State
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editPhoto, setEditPhoto] = useState('');
+  const [editBasePrice, setEditBasePrice] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user) return;
+    setEditName(profile?.displayName || '');
+    setEditPhone(profile?.phone || '');
+    setEditPhoto(profile?.photoData || '');
 
-    // 1. Query auctions where user is in bidderIds array
-    const qBidders = query(
-      collection(db, 'auctions'),
-      where('bidderIds', 'array-contains', user.uid)
-    );
-    const unsubBidders = onSnapshot(
-      qBidders,
-      (snap) => {
-        setBidAuctions(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    if (isPlayer) {
+      getPlayerById(user.uid).then((p) => {
+        if (p) {
+          setPlayerData(p);
+          setEditBasePrice(String(p.basePrice || 5000));
+          setEditBio(p.bio || '');
+        }
         setLoading(false);
-      },
-      (err) => console.error('Error fetching bid auctions:', err)
-    );
+      });
+    } else if (isBidder) {
+      getTeamByUserId(user.uid).then((t) => {
+        if (t) setTeamData(t);
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [user, profile, isPlayer, isBidder]);
 
-    // 2. Query auctions where user is highestBidderId (merges older auctions that might lack bidderIds)
-    const qLeading = query(
-      collection(db, 'auctions'),
-      where('highestBidderId', '==', user.uid)
-    );
-    const unsubLeading = onSnapshot(
-      qLeading,
-      (snap) => {
-        setLeadingAuctions(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      },
-      (err) => console.error('Error fetching leading auctions:', err)
-    );
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      // 1. Update user document
+      await updateDoc(doc(db, 'users', user.uid), {
+        displayName: editName.trim(),
+        phone: editPhone.trim(),
+        photoData: editPhoto,
+      });
 
-    // 3. Query user's own listings
-    const qListings = query(
-      collection(db, 'auctions'),
-      where('sellerId', '==', user.uid)
-    );
-    const unsubListings = onSnapshot(
-      qListings,
-      (snap) => {
-        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        // Sort newest first
-        items.sort((a, b) => {
-          const aT = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-          const bT = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-          return bT - aT;
+      // 2. Update player or team document
+      if (isPlayer && playerData) {
+        await updatePlayer(user.uid, {
+          name: editName.trim(),
+          phone: editPhone.trim(),
+          photoUrl: editPhoto,
+          basePrice: Number(editBasePrice) || playerData.basePrice,
+          bio: editBio.trim(),
         });
-        setListings(items);
-      },
-      (err) => console.error('Error fetching user listings:', err)
-    );
-
-    return () => {
-      unsubBidders();
-      unsubLeading();
-      unsubListings();
-    };
-  }, [user]);
-
-  // Merge the two bid sets uniquely by ID
-  const mergedBidAuctions = useMemo(() => {
-    const map = new Map();
-    bidAuctions.forEach((a) => map.set(a.id, a));
-    leadingAuctions.forEach((a) => {
-      if (!map.has(a.id)) {
-        map.set(a.id, a);
+        setPlayerData((prev) => ({
+          ...prev,
+          name: editName.trim(),
+          phone: editPhone.trim(),
+          photoUrl: editPhoto,
+          basePrice: Number(editBasePrice) || prev.basePrice,
+          bio: editBio.trim(),
+        }));
       }
-    });
-    return Array.from(map.values());
-  }, [bidAuctions, leadingAuctions]);
 
-  // Compute metrics
-  const now = new Date();
-  const leadingNow = mergedBidAuctions.filter((a) => {
-    const ends = a.endsAt?.toDate ? a.endsAt.toDate() : new Date(a.endsAt);
-    return ends > now && a.highestBidderId === user?.uid;
-  });
+      if (isBidder && teamData) {
+        await updateTeam(teamData.id, {
+          ownerName: editName.trim(),
+          ownerPhone: editPhone.trim(),
+          ownerPhoto: editPhoto,
+        });
+        setTeamData((prev) => ({
+          ...prev,
+          ownerName: editName.trim(),
+          ownerPhone: editPhone.trim(),
+          ownerPhoto: editPhoto,
+        }));
+      }
 
-  const wonAuctions = mergedBidAuctions.filter((a) => {
-    const ends = a.endsAt?.toDate ? a.endsAt.toDate() : new Date(a.endsAt);
-    return ends <= now && a.highestBidderId === user?.uid;
-  });
-
-  const totalSpent = wonAuctions.reduce((sum, a) => sum + (Number(a.currentBid) || 0), 0);
-
-  const tabsWithCounts = TABS.map((t) => {
-    if (t.key === 'bids') return { ...t, count: mergedBidAuctions.length };
-    if (t.key === 'listings') return { ...t, count: listings.length };
-    return t;
-  });
+      await refreshProfile();
+      addToast('Profile updated successfully!', 'success');
+    } catch (err) {
+      console.error('Update error:', err);
+      addToast('Failed to update profile.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Profile Banner */}
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      <div className="max-w-6xl mx-auto space-y-8">
+
+        {/* User Role Profile Header */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <Avatar
               photoData={profile?.photoData}
@@ -147,414 +123,280 @@ export default function Dashboard() {
               size="xl"
             />
             <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                  {profile?.displayName || 'My Account'}
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  {profile?.displayName || user?.email?.split('@')[0]}
                 </h1>
-                {isAdmin && <Chip label="ADMIN" type="admin" />}
+                <span className="bg-indigo-50 text-indigo-700 text-xs font-black uppercase px-2.5 py-1 rounded-lg">
+                  {isBidder ? '👑 Team Owner' : isPlayer ? '🏃 Athlete' : isAdmin ? '🛡️ Admin' : 'User'}
+                </span>
               </div>
-              <p className="text-sm text-slate-500 mt-0.5">{user?.email}</p>
-              {profile?.phone && (
-                <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                  <span>📱</span> {profile.phone}
-                </p>
-              )}
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                {user?.email} {profile?.phone && `• ${profile.phone}`}
+              </p>
             </div>
           </div>
 
+          {/* Quick Action Badges */}
           <div className="flex items-center gap-3">
-            <Link to="/create">
-              <Button size="sm">Create New Listing</Button>
+            {isBidder && teamData && (
+              <div className="bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-2xl text-right">
+                <span className="text-[10px] font-bold text-amber-800 uppercase block">Remaining Purse</span>
+                <span className="text-lg font-black text-amber-950">
+                  🪙 {fmtChips(teamData.remainingChips)}
+                </span>
+              </div>
+            )}
+            {isAdmin && (
+              <Link to="/admin">
+                <Button className="bg-violet-600 hover:bg-violet-700 font-bold">
+                  Open Admin Console
+                </Button>
+              </Link>
+            )}
+            <Link to="/">
+              <Button variant="outline" className="font-bold">
+                Join Live Auction ⚡
+              </Button>
             </Link>
           </div>
         </div>
 
-        {/* Suspended Account Banner */}
-        {isBlocked && (
-          <Notice type="error" className="mb-8">
-            <strong>Account Suspended:</strong> An administrator has disabled bidding and listing privileges on this account.
-          </Notice>
-        )}
+        {/* BIDDER / TEAM OWNER DASHBOARD */}
+        {isBidder && teamData && (
+          <div className="space-y-6">
+            {/* Financial Overview Tiles */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Remaining Chips</p>
+                <p className="text-3xl font-black text-emerald-700 mt-1">
+                  🪙 {fmtChips(teamData.remainingChips)}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">Available for bidding in live auctions</p>
+              </div>
 
-        {/* Statistics Tiles Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
-          <StatTile label="Auctions Bid On" value={mergedBidAuctions.length} />
-          <StatTile
-            label="Leading Now"
-            value={leadingNow.length}
-            sub={leadingNow.length > 0 ? 'Highest bidder' : undefined}
-          />
-          <StatTile label="Won" value={wonAuctions.length} />
-          <StatTile label="Total Spent" value={fmt(totalSpent)} />
-          <StatTile label="Your Listings" value={listings.length} />
-        </div>
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Spent Chips</p>
+                <p className="text-3xl font-black text-amber-700 mt-1">
+                  🪙 {fmtChips(teamData.spentChips)}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">Total invested in squad recruitment</p>
+              </div>
 
-        {/* Tabs Bar */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm mb-6">
-          <Tabs
-            tabs={tabsWithCounts}
-            active={tab}
-            onChange={setTab}
-            className="border-b-0"
-          />
-        </div>
-
-        {/* Tab Contents */}
-        {tab === 'bids' && (
-          <MyBidsTab auctions={mergedBidAuctions} userId={user?.uid} loading={loading} />
-        )}
-
-        {tab === 'listings' && (
-          <MyListingsTab listings={listings} addToast={addToast} />
-        )}
-
-        {tab === 'profile' && (
-          <ProfileTab
-            user={user}
-            profile={profile}
-            refreshProfile={refreshProfile}
-            addToast={addToast}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MyBidsTab({ auctions, userId, loading }) {
-  const now = new Date();
-
-  if (loading) {
-    return (
-      <div className="py-16 text-center text-slate-400 text-sm">
-        Loading your bids…
-      </div>
-    );
-  }
-
-  if (auctions.length === 0) {
-    return (
-      <div className="bg-white rounded-2xl border border-slate-200 py-16 px-6 text-center shadow-sm">
-        <div className="text-5xl mb-3">🔨</div>
-        <h3 className="text-lg font-bold text-slate-900 mb-1">No bids yet</h3>
-        <p className="text-slate-500 text-sm max-w-sm mx-auto mb-6">
-          You haven't participated in any auctions yet. Browse active listings to place your first bid!
-        </p>
-        <Link to="/">
-          <Button>Browse Auctions</Button>
-        </Link>
-      </div>
-    );
-  }
-
-  const getStatus = (auction) => {
-    const ends = auction.endsAt?.toDate ? auction.endsAt.toDate() : new Date(auction.endsAt);
-    const isLive = ends > now;
-
-    if (isLive) {
-      return auction.highestBidderId === userId
-        ? { label: 'Leading', type: 'leading' }
-        : { label: 'Outbid', type: 'outbid' };
-    } else {
-      return auction.highestBidderId === userId
-        ? { label: 'Won', type: 'won' }
-        : { label: 'Lost', type: 'lost' };
-    }
-  };
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {auctions.map((auction) => {
-        const status = getStatus(auction);
-        return (
-          <div key={auction.id} className="relative group">
-            {/* Overlay status chip */}
-            <div className="absolute top-3 left-3 z-20">
-              <Chip label={status.label} type={status.type} className="shadow-sm font-bold" />
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <p className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Squad Roster Size</p>
+                <p className="text-3xl font-black text-indigo-700 mt-1">
+                  {teamData.squad?.length || 0} / {teamData.squadLimit || 15}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">Athletes acquired on the hammer</p>
+              </div>
             </div>
-            <AuctionCard auction={auction} />
+
+            {/* Team Squad Roster */}
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">
+                    {teamData.teamName} Squad Roster
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Official roster of players won during sports auctions
+                  </p>
+                </div>
+                <Link to="/players">
+                  <Button size="sm" variant="outline">Browse Available Players</Button>
+                </Link>
+              </div>
+
+              {(!teamData.squad || teamData.squad.length === 0) ? (
+                <div className="p-10 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <span className="text-4xl block mb-2">📋</span>
+                  <p className="text-sm font-bold text-slate-800">Your squad is currently empty</p>
+                  <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto mb-4">
+                    Join live auction rooms to place chip bids and sign players to your franchise.
+                  </p>
+                  <Link to="/">
+                    <Button size="sm">Go to Live Auctions</Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {teamData.squad.map((player, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-slate-800 text-white flex items-center justify-center font-black text-sm overflow-hidden flex-shrink-0">
+                          {player.photoUrl ? (
+                            <img src={player.photoUrl} alt={player.name} className="w-full h-full object-cover" />
+                          ) : (
+                            player.name?.slice(0, 1)
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-slate-900">{player.name}</h4>
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            {player.sport} • {player.role}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Won for</span>
+                        <span className="text-sm font-black text-indigo-700">
+                          🪙 {fmtChips(player.price)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        );
-      })}
-    </div>
-  );
-}
+        )}
 
-function MyListingsTab({ listings, addToast }) {
-  const [deletingId, setDeletingId] = useState(null);
-  const now = new Date();
+        {/* ATHLETE / PLAYER DASHBOARD */}
+        {isPlayer && playerData && (
+          <div className="space-y-6">
+            {/* Player Status Card */}
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">Your Player Status</h2>
+                  <p className="text-xs text-slate-500">Live auction status and franchise assignment</p>
+                </div>
+                <div>
+                  {playerData.status === 'sold' ? (
+                    <span className="bg-emerald-500 text-white font-black text-xs px-3 py-1.5 rounded-xl shadow-sm">
+                      ✓ SOLD to {playerData.soldToTeamName}
+                    </span>
+                  ) : playerData.status === 'in_auction' ? (
+                    <span className="bg-amber-500 text-slate-950 font-black text-xs px-3 py-1.5 rounded-xl shadow-sm animate-pulse">
+                      🔥 IN LIVE AUCTION NOW
+                    </span>
+                  ) : playerData.status === 'unsold' ? (
+                    <span className="bg-slate-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">
+                      Unsold (Will enter round 2)
+                    </span>
+                  ) : (
+                    <span className="bg-indigo-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">
+                      🟢 Available in Auction Pool
+                    </span>
+                  )}
+                </div>
+              </div>
 
-  const handleDelete = async (auction) => {
-    if (!window.confirm(`Are you sure you want to delete "${auction.title}"?`)) {
-      return;
-    }
+              {/* Sold Details Banner */}
+              {playerData.status === 'sold' && (
+                <div className="mt-6 p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase">Contract Awarded</span>
+                    <h3 className="text-lg font-black text-emerald-950">{playerData.soldToTeamName}</h3>
+                    <p className="text-xs text-emerald-800">Franchise Owner: {playerData.soldToOwnerName}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase">Winning Bid</span>
+                    <p className="text-2xl font-black text-emerald-900">{fmtChips(playerData.soldPrice)}</p>
+                  </div>
+                </div>
+              )}
 
-    setDeletingId(auction.id);
-    try {
-      // Delete any bids
-      const bidsSnap = await getDocs(collection(db, 'auctions', auction.id, 'bids'));
-      if (!bidsSnap.empty) {
-        const batch = writeBatch(db);
-        bidsSnap.forEach((d) => batch.delete(d.ref));
-        await batch.commit();
-      }
-
-      await deleteDoc(doc(db, 'auctions', auction.id));
-      addToast('Listing deleted successfully.', 'success');
-    } catch (err) {
-      console.error('Delete listing error:', err);
-      addToast(friendlyError(err), 'error');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const columns = [
-    {
-      key: 'title',
-      label: 'Item Title',
-      render: (r) => (
-        <Link
-          to={`/auction/${r.id}`}
-          className="font-bold text-slate-900 hover:text-indigo-600 transition"
-        >
-          {r.title}
-        </Link>
-      ),
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (r) => {
-        const ends = r.endsAt?.toDate ? r.endsAt.toDate() : new Date(r.endsAt);
-        const live = ends > now;
-        return <Chip label={live ? 'Live' : 'Ended'} type={live ? 'live' : 'ended'} />;
-      },
-    },
-    {
-      key: 'bidCount',
-      label: 'Bids',
-      render: (r) => (
-        <span className="font-semibold text-slate-700">{r.bidCount || 0}</span>
-      ),
-    },
-    {
-      key: 'currentBid',
-      label: 'Current Bid',
-      render: (r) => (
-        <span className="font-extrabold text-indigo-600">
-          {fmt(r.currentBid || r.startPrice)}
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (r) => {
-        const hasBids = (r.bidCount || 0) > 0;
-        if (hasBids) {
-          return (
-            <span className="text-xs text-slate-400 font-medium italic">
-              Has active bids
-            </span>
-          );
-        }
-        return (
-          <Button
-            size="sm"
-            variant="danger"
-            disabled={deletingId === r.id}
-            onClick={() => handleDelete(r)}
-          >
-            {deletingId === r.id ? 'Deleting…' : 'Delete'}
-          </Button>
-        );
-      },
-    },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-500">
-          {listings.length} item{listings.length === 1 ? '' : 's'} listed
-        </p>
-        <Link to="/create">
-          <Button size="sm">New Listing</Button>
-        </Link>
-      </div>
-
-      <DataTable
-        columns={columns}
-        rows={listings}
-        emptyText="You haven't listed any auctions yet. Click 'New Listing' to get started!"
-      />
-    </div>
-  );
-}
-
-function ProfileTab({ user, profile, refreshProfile, addToast }) {
-  // Keep form state strictly local so firestore snapshots don't reset while user types
-  const [photoData, setPhotoData] = useState(profile?.photoData || '');
-  const [form, setForm] = useState({
-    name: profile?.displayName || '',
-    phone: profile?.phone || '',
-    dob: profile?.dob || '',
-  });
-
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [resetting, setResetting] = useState(false);
-
-  const update = (key) => (e) => {
-    setForm((prev) => ({ ...prev, [key]: e.target.value }));
-    if (errors[key]) {
-      setErrors((prev) => ({ ...prev, [key]: null }));
-    }
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    const errs = {};
-
-    if (!form.name.trim()) {
-      errs.name = 'Full name is required (max 40 chars).';
-    } else if (form.name.trim().length > 40) {
-      errs.name = 'Full name must be at most 40 characters.';
-    }
-
-    const phoneErr = validatePhone(form.phone);
-    if (phoneErr) errs.phone = phoneErr;
-
-    const dobErr = validateDob(form.dob);
-    if (dobErr) errs.dob = dobErr;
-
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
-    }
-
-    setErrors({});
-    setSaving(true);
-
-    try {
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, {
-          displayName: form.name.trim(),
-        });
-      }
-
-      await updateDoc(doc(db, 'users', user.uid), {
-        displayName: form.name.trim(),
-        phone: form.phone.trim(),
-        dob: form.dob,
-        photoData: photoData || '',
-      });
-
-      await refreshProfile();
-      addToast('Profile updated successfully!', 'success');
-    } catch (err) {
-      console.error('Save profile error:', err);
-      addToast(friendlyError(err), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSendPasswordReset = async () => {
-    if (!user?.email) return;
-    setResetting(true);
-    try {
-      await sendPasswordResetEmail(auth, user.email);
-      addToast(`Password reset email sent to ${user.email}`, 'success');
-    } catch (err) {
-      console.error('Password reset error:', err);
-      addToast(friendlyError(err), 'error');
-    } finally {
-      setResetting(false);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-10 shadow-sm max-w-xl mx-auto">
-      <h2 className="text-xl font-bold text-slate-900 mb-6">Edit Profile Details</h2>
-
-      <form onSubmit={handleSave} className="space-y-5">
-        <div className="flex flex-col items-center justify-center mb-4">
-          <PhotoPicker
-            value={photoData}
-            onChange={setPhotoData}
-            name={form.name}
-            size="xl"
-          />
-          <span className="text-xs text-slate-400 mt-2">
-            Click image to choose new photo (auto-resized)
-          </span>
-        </div>
-
-        <Input
-          label="Full name"
-          id="name"
-          value={form.name}
-          onChange={update('name')}
-          error={errors.name}
-          required
-        />
-
-        <Input
-          label="Mobile number"
-          id="phone"
-          type="tel"
-          value={form.phone}
-          onChange={update('phone')}
-          error={errors.phone}
-          required
-        />
-
-        <Input
-          label="Date of birth"
-          id="dob"
-          type="date"
-          value={form.dob}
-          onChange={update('dob')}
-          error={errors.dob}
-          required
-        />
-
-        <div>
-          <label className="text-sm font-medium text-slate-700">Email Address</label>
-          <div className="mt-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-sm">
-            {user?.email} <span className="text-xs text-slate-400 ml-2">(Read-only)</span>
+              {/* Career Stats Grid */}
+              <div className="mt-6">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                  Registered Career Statistics
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Sport</span>
+                    <span className="text-sm font-black text-slate-900">{playerData.sport}</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Playing Role</span>
+                    <span className="text-sm font-black text-slate-900">{playerData.role}</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Matches</span>
+                    <span className="text-sm font-black text-slate-900">{playerData.stats?.matches ?? '-'}</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Base Price</span>
+                    <span className="text-sm font-black text-indigo-700">{fmtChips(playerData.basePrice)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div>
-          <label className="text-sm font-medium text-slate-700">Account Role</label>
-          <div className="mt-1 flex items-center gap-2">
-            <Chip
-              label={profile?.role === 'admin' ? 'Administrator' : 'Standard User'}
-              type={profile?.role === 'admin' ? 'admin' : 'user'}
+        {/* Profile Settings Section */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+          <h2 className="text-xl font-black text-slate-900 mb-1">Account & Profile Settings</h2>
+          <p className="text-xs text-slate-500 mb-6">Update your contact information and public profile</p>
+
+          <form onSubmit={handleSaveProfile} className="space-y-4 max-w-xl">
+            <div className="flex flex-col items-center justify-center mb-4">
+              <PhotoPicker
+                value={editPhoto}
+                onChange={setEditPhoto}
+                name={editName}
+                size="lg"
+              />
+              <span className="text-[11px] text-slate-400 mt-1">Profile Photo</span>
+            </div>
+
+            <Input
+              label="Full Name"
+              id="editName"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              required
             />
-          </div>
+
+            <Input
+              label="Mobile Number"
+              id="editPhone"
+              value={editPhone}
+              onChange={(e) => setEditPhone(e.target.value)}
+            />
+
+            {isPlayer && (
+              <>
+                <Input
+                  label="Auction Base Price (Chips 🪙)"
+                  id="editBasePrice"
+                  type="number"
+                  value={editBasePrice}
+                  onChange={(e) => setEditBasePrice(e.target.value)}
+                  disabled={playerData?.status === 'sold'}
+                />
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Bio & Achievements
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+              </>
+            )}
+
+            <Button
+              type="submit"
+              disabled={saving}
+              className="bg-indigo-600 font-bold px-8 mt-2"
+            >
+              {saving ? 'Saving changes…' : 'Save Profile Changes'}
+            </Button>
+          </form>
         </div>
 
-        <div className="pt-4 flex flex-col sm:flex-row items-center gap-3 border-t border-slate-100">
-          <Button type="submit" disabled={saving} size="md" className="w-full sm:w-auto">
-            {saving ? 'Saving changes…' : 'Save Changes'}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={resetting}
-            onClick={handleSendPasswordReset}
-            size="md"
-            className="w-full sm:w-auto"
-          >
-            {resetting ? 'Sending…' : 'Send Password Reset Email'}
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

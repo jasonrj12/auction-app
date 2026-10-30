@@ -66,14 +66,14 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6">
       <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 sm:p-10 shadow-sm">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-black text-xl mx-auto mb-4 shadow-sm">
-            B
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-2xl mx-auto mb-4 shadow-sm">
+            🏆
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Log in to Bidly
+            Log in to Bidly Sports
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Access your live auctions, bids, and profile
+            Access your team purse, squad, or athlete profile
           </p>
         </div>
 

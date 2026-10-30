@@ -15,19 +15,23 @@ import {
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { fmt } from '../lib/format';
+import { fmtChips } from '../lib/format';
 import { friendlyError } from '../lib/errors';
+import { subscribeAllPlayers, deletePlayer } from '../services/players';
+import { subscribeAllTeams, setTeamChips, deleteTeam } from '../services/teams';
+import { seedSampleSportsData } from '../services/sampleData';
 import Tabs from '../components/Tabs';
-import StatTile from '../components/StatTile';
-import DataTable from '../components/DataTable';
 import Chip from '../components/Chip';
 import Avatar from '../components/Avatar';
 import Button from '../components/Button';
+import Input from '../components/Input';
 
 const ADMIN_TABS = [
   { key: 'overview', label: 'Overview' },
+  { key: 'players', label: 'Players Pool' },
+  { key: 'teams', label: 'Team Franchises & Purses' },
+  { key: 'auctions', label: 'Auctions Moderation' },
   { key: 'users', label: 'User Management' },
-  { key: 'auctions', label: 'Auction Moderation' },
 ];
 
 export default function Admin() {
@@ -40,14 +44,19 @@ export default function Admin() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Admin Console
+                Tournament Admin Console
               </h1>
               <Chip label="ADMIN" type="admin" />
             </div>
             <p className="text-slate-500 text-sm mt-1">
-              Manage platform users, moderate listings, and view live metrics
+              Manage sports tournament athletes, team owner chip purses, and live auction rooms
             </p>
           </div>
+          <Link to="/create">
+            <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 font-bold">
+              + Create Sports Auction
+            </Button>
+          </Link>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm mb-8">
@@ -55,332 +64,294 @@ export default function Admin() {
         </div>
 
         {tab === 'overview' && <OverviewTab />}
-        {tab === 'users' && <UsersTab />}
+        {tab === 'players' && <PlayersTab />}
+        {tab === 'teams' && <TeamsTab />}
         {tab === 'auctions' && <AuctionsTab />}
+        {tab === 'users' && <UsersTab />}
       </div>
     </div>
   );
 }
 
 function OverviewTab() {
+  const { user, profile } = useAuth();
+  const { addToast } = useToast();
+
   const [users, setUsers] = useState([]);
   const [auctions, setAuctions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [players, setPlayers] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     if (!db) return;
-
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-      setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
-
-    const unsubAuctions = onSnapshot(
-      query(collection(db, 'auctions'), orderBy('createdAt', 'desc')),
-      (snap) => {
-        setAuctions(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      }
-    );
+    const unsubU = onSnapshot(collection(db, 'users'), (s) => setUsers(s.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    const unsubA = onSnapshot(collection(db, 'auctions'), (s) => setAuctions(s.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    const unsubP = subscribeAllPlayers(setPlayers);
+    const unsubT = subscribeAllTeams(setTeams);
 
     return () => {
-      unsubUsers();
-      unsubAuctions();
+      unsubU();
+      unsubA();
+      unsubP();
+      unsubT();
     };
   }, []);
 
-  const now = new Date();
-  const liveAuctions = auctions.filter((a) => {
-    const ends = a.endsAt?.toDate ? a.endsAt.toDate() : new Date(a.endsAt);
-    return ends > now;
-  });
+  const handleSeed = async () => {
+    setSeeding(true);
+    try {
+      await seedSampleSportsData(user, profile);
+      addToast('Sample sports players and teams loaded successfully!', 'success');
+    } catch (err) {
+      console.error('Seed error:', err);
+      addToast('Error seeding sample data.', 'error');
+    } finally {
+      setSeeding(false);
+    }
+  };
 
-  const endedAuctions = auctions.filter((a) => {
-    const ends = a.endsAt?.toDate ? a.endsAt.toDate() : new Date(a.endsAt);
-    return ends <= now;
-  });
-
-  const salesVolume = endedAuctions
-    .filter((a) => (a.bidCount || 0) > 0)
-    .reduce((sum, a) => sum + (Number(a.currentBid) || 0), 0);
-
-  const totalBids = auctions.reduce((sum, a) => sum + (Number(a.bidCount) || 0), 0);
-  const admins = users.filter((u) => u.role === 'admin');
-  const blocked = users.filter((u) => u.disabled === true);
-
-  const recentColumns = [
-    {
-      key: 'title',
-      label: 'Item',
-      render: (r) => (
-        <Link
-          to={`/auction/${r.id}`}
-          className="font-bold text-slate-900 hover:text-indigo-600 transition truncate max-w-[200px] block"
-        >
-          {r.title}
-        </Link>
-      ),
-    },
-    { key: 'sellerName', label: 'Seller' },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (r) => {
-        const ends = r.endsAt?.toDate ? r.endsAt.toDate() : new Date(r.endsAt);
-        const isLive = ends > now;
-        return <Chip label={isLive ? 'Live' : 'Ended'} type={isLive ? 'live' : 'ended'} />;
-      },
-    },
-    { key: 'bidCount', label: 'Total Bids', render: (r) => r.bidCount || 0 },
-    {
-      key: 'currentBid',
-      label: 'Current / Final Bid',
-      render: (r) => fmt(r.currentBid || r.startPrice),
-    },
-    {
-      key: 'createdAt',
-      label: 'Created',
-      render: (r) =>
-        r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString() : '—',
-    },
-  ];
-
-  if (loading) {
-    return <div className="py-12 text-center text-slate-400 text-sm">Loading statistics…</div>;
-  }
+  const totalPurse = teams.reduce((acc, t) => acc + (t.totalChips || 0), 0);
+  const totalSpent = teams.reduce((acc, t) => acc + (t.spentChips || 0), 0);
+  const totalSold = players.filter((p) => p.status === 'sold').length;
 
   return (
-    <div className="space-y-8">
-      {/* 8 Metric Tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatTile label="Total Users" value={users.length} />
-        <StatTile label="Administrators" value={admins.length} />
-        <StatTile label="Blocked Users" value={blocked.length} />
-        <StatTile label="Total Auctions" value={auctions.length} />
-        <StatTile label="Live Now" value={liveAuctions.length} />
-        <StatTile label="Ended Auctions" value={endedAuctions.length} />
-        <StatTile label="Total Bids Placed" value={totalBids} />
-        <StatTile label="Sales Volume" value={fmt(salesVolume)} sub="Ended with bids" />
+    <div className="space-y-6">
+      {/* Stat Tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <p className="text-xs font-bold text-slate-400 uppercase">Registered Athletes</p>
+          <p className="text-3xl font-black text-slate-900 mt-1">{players.length}</p>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <p className="text-xs font-bold text-indigo-600 uppercase">Franchise Teams</p>
+          <p className="text-3xl font-black text-indigo-700 mt-1">{teams.length}</p>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <p className="text-xs font-bold text-emerald-600 uppercase">Athletes Sold</p>
+          <p className="text-3xl font-black text-emerald-700 mt-1">{totalSold}</p>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <p className="text-xs font-bold text-amber-600 uppercase">Chips Spent</p>
+          <p className="text-2xl font-black text-amber-700 mt-1">{fmtChips(totalSpent)}</p>
+        </div>
       </div>
 
-      {/* 8 Most Recent Auctions Table */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">
-            Recently Listed Auctions
-          </h2>
-          <span className="text-xs text-slate-400 font-medium">8 most recent</span>
+      {/* Demo Seed Box */}
+      <div className="bg-gradient-to-r from-indigo-50 to-amber-50 border border-indigo-100 p-6 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-base font-black text-slate-900">
+            Quick-Start Demo Data
+          </h3>
+          <p className="text-xs text-slate-600 mt-0.5">
+            Instantly populate high-profile Cricket & Football stars (Kohli, Bumrah, Mbappé, Bellingham) and 4 teams with 100,000 chip purses.
+          </p>
         </div>
-        <DataTable
-          columns={recentColumns}
-          rows={auctions.slice(0, 8)}
-          emptyText="No auctions listed on the platform yet."
-        />
+        <Button
+          onClick={handleSeed}
+          disabled={seeding}
+          className="bg-indigo-600 hover:bg-indigo-700 font-bold whitespace-nowrap"
+        >
+          {seeding ? 'Populating...' : 'Seed Sample Sports Data ⚡'}
+        </Button>
       </div>
     </div>
   );
 }
 
-function UsersTab() {
-  const { user: currentAdmin } = useAuth();
+function PlayersTab() {
   const { addToast } = useToast();
-  const [users, setUsers] = useState([]);
+  const [players, setPlayers] = useState([]);
   const [search, setSearch] = useState('');
-  const [actionId, setActionId] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!db) return;
-    const unsub = onSnapshot(collection(db, 'users'), (snap) => {
-      setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
+    const unsub = subscribeAllPlayers(setPlayers);
+    return () => unsub();
   }, []);
 
-  const filteredUsers = users.filter((u) => {
-    const q = search.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      (u.displayName || '').toLowerCase().includes(q) ||
-      (u.email || '').toLowerCase().includes(q) ||
-      (u.phone || '').toLowerCase().includes(q)
-    );
-  });
-
-  const handleToggleRole = async (targetUser) => {
-    const isTargetAdmin = targetUser.role === 'admin';
-    const actionLabel = isTargetAdmin ? 'remove admin role from' : 'grant admin role to';
-
-    if (!window.confirm(`Are you sure you want to ${actionLabel} ${targetUser.displayName || targetUser.email}?`)) {
-      return;
-    }
-
-    const newRole = isTargetAdmin ? 'user' : 'admin';
-    setActionId(`${targetUser.id}-role`);
-
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to remove this player?')) return;
     try {
-      await updateDoc(doc(db, 'users', targetUser.id), {
-        role: newRole,
-      });
-      addToast(`Updated ${targetUser.displayName || targetUser.email} to ${newRole}.`, 'success');
+      await deletePlayer(id);
+      addToast('Player removed.', 'info');
     } catch (err) {
-      console.error('Role update error:', err);
-      addToast(friendlyError(err), 'error');
-    } finally {
-      setActionId(null);
+      addToast('Failed to delete player.', 'error');
     }
   };
 
-  const handleToggleBlock = async (targetUser) => {
-    const isCurrentlyBlocked = targetUser.disabled === true;
-    const actionLabel = isCurrentlyBlocked ? 'unblock' : 'block';
-
-    if (!window.confirm(`Are you sure you want to ${actionLabel} ${targetUser.displayName || targetUser.email}?`)) {
-      return;
-    }
-
-    setActionId(`${targetUser.id}-disabled`);
-    try {
-      await updateDoc(doc(db, 'users', targetUser.id), {
-        disabled: !isCurrentlyBlocked,
-      });
-      addToast(
-        `User ${targetUser.displayName || targetUser.email} has been ${isCurrentlyBlocked ? 'unblocked' : 'blocked'}.`,
-        'success'
-      );
-    } catch (err) {
-      console.error('Block update error:', err);
-      addToast(friendlyError(err), 'error');
-    } finally {
-      setActionId(null);
-    }
-  };
-
-  const columns = [
-    {
-      key: 'user',
-      label: 'User',
-      render: (u) => (
-        <div className="flex items-center gap-3">
-          <Avatar photoData={u.photoData} name={u.displayName || u.email} size="sm" />
-          <div className="flex flex-col">
-            <span className="font-bold text-slate-900 max-w-[140px] truncate">
-              {u.displayName || 'Unnamed'}
-            </span>
-            <span className="text-xs text-slate-400">{u.id.substring(0, 8)}…</span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'email',
-      label: 'Email',
-      render: (u) => <span className="font-medium text-slate-700">{u.email}</span>,
-    },
-    {
-      key: 'phone',
-      label: 'Mobile',
-      render: (u) => u.phone || <span className="text-slate-400">—</span>,
-    },
-    {
-      key: 'dob',
-      label: 'Date of Birth',
-      render: (u) => u.dob || <span className="text-slate-400">—</span>,
-    },
-    {
-      key: 'role',
-      label: 'Role',
-      render: (u) => (
-        <Chip
-          label={u.role === 'admin' ? 'Admin' : 'User'}
-          type={u.role === 'admin' ? 'admin' : 'user'}
-        />
-      ),
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (u) => (
-        <Chip
-          label={u.disabled ? 'Blocked' : 'Active'}
-          type={u.disabled ? 'blocked' : 'active'}
-        />
-      ),
-    },
-    {
-      key: 'joined',
-      label: 'Joined',
-      render: (u) =>
-        u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString() : '—',
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (u) => {
-        if (u.id === currentAdmin?.uid) {
-          return (
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">
-              (You)
-            </span>
-          );
-        }
-
-        const isUpdatingRole = actionId === `${u.id}-role`;
-        const isUpdatingBlock = actionId === `${u.id}-disabled`;
-
-        return (
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isUpdatingRole || isUpdatingBlock}
-              onClick={() => handleToggleRole(u)}
-            >
-              {isUpdatingRole
-                ? 'Updating…'
-                : u.role === 'admin'
-                ? 'Remove admin'
-                : 'Make admin'}
-            </Button>
-
-            <Button
-              size="sm"
-              variant={u.disabled ? 'secondary' : 'danger'}
-              disabled={isUpdatingRole || isUpdatingBlock}
-              onClick={() => handleToggleBlock(u)}
-            >
-              {isUpdatingBlock ? 'Updating…' : u.disabled ? 'Unblock' : 'Block'}
-            </Button>
-          </div>
-        );
-      },
-    },
-  ];
+  const filtered = players.filter((p) =>
+    !search.trim() || p.name?.toLowerCase().includes(search.toLowerCase()) || p.role?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <input
-          type="text"
-          placeholder="Search users by name, email, or mobile…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-80 rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <span className="text-xs text-slate-400">
-          Showing {filteredUsers.length} of {users.length} users
-        </span>
+    <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">Manage Players Pool ({players.length})</h2>
+          <p className="text-xs text-slate-500">View, monitor, and remove registered sports athletes</p>
+        </div>
+        <div className="w-64">
+          <Input placeholder="Filter players..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
       </div>
 
-      {loading ? (
-        <div className="py-12 text-center text-slate-400 text-sm">Loading users…</div>
-      ) : (
-        <DataTable
-          columns={columns}
-          rows={filteredUsers}
-          emptyText="No users found matching your search."
-        />
-      )}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-slate-200 text-slate-400 uppercase">
+              <th className="py-3 px-3">Player</th>
+              <th className="py-3 px-3">Sport & Role</th>
+              <th className="py-3 px-3">Base Price</th>
+              <th className="py-3 px-3">Status</th>
+              <th className="py-3 px-3">Winning Team</th>
+              <th className="py-3 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filtered.map((p) => (
+              <tr key={p.id} className="hover:bg-slate-50">
+                <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold text-xs overflow-hidden">
+                    {p.photoUrl ? <img src={p.photoUrl} alt={p.name} className="w-full h-full object-cover" /> : p.name?.slice(0, 1)}
+                  </div>
+                  <span>{p.name}</span>
+                </td>
+                <td className="py-3 px-3 text-slate-600">{p.sport} • {p.role}</td>
+                <td className="py-3 px-3 font-bold text-indigo-700">{fmtChips(p.basePrice)}</td>
+                <td className="py-3 px-3">
+                  <span className={`px-2 py-0.5 rounded font-black text-[10px] uppercase ${
+                    p.status === 'sold' ? 'bg-emerald-100 text-emerald-800' :
+                    p.status === 'in_auction' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+                  }`}>
+                    {p.status || 'Available'}
+                  </span>
+                </td>
+                <td className="py-3 px-3 text-slate-700">{p.soldToTeamName || '-'}</td>
+                <td className="py-3 px-3 text-right">
+                  <Button size="sm" variant="outline" onClick={() => handleDelete(p.id)} className="text-rose-600 text-xs py-1">
+                    Delete
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function TeamsTab() {
+  const { addToast } = useToast();
+  const [teams, setTeams] = useState([]);
+  const [editChipsId, setEditChipsId] = useState(null);
+  const [newChips, setNewChips] = useState('');
+
+  useEffect(() => {
+    const unsub = subscribeAllTeams(setTeams);
+    return () => unsub();
+  }, []);
+
+  const handleUpdateChips = async (teamId) => {
+    const num = Number(newChips);
+    if (isNaN(num) || num < 0) {
+      addToast('Enter a valid chip amount.', 'error');
+      return;
+    }
+    try {
+      await setTeamChips(teamId, num);
+      addToast('Team chip purse updated successfully.', 'success');
+      setEditChipsId(null);
+      setNewChips('');
+    } catch (err) {
+      addToast('Failed to update chips.', 'error');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this team franchise?')) return;
+    try {
+      await deleteTeam(id);
+      addToast('Team removed.', 'info');
+    } catch (err) {
+      addToast('Failed to delete team.', 'error');
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+      <div>
+        <h2 className="text-lg font-black text-slate-900">Manage Team Franchises & Purses ({teams.length})</h2>
+        <p className="text-xs text-slate-500">Adjust bidder chip balances, manage limits, and view squads</p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-slate-200 text-slate-400 uppercase">
+              <th className="py-3 px-3">Franchise</th>
+              <th className="py-3 px-3">Owner Details</th>
+              <th className="py-3 px-3">Remaining Purse</th>
+              <th className="py-3 px-3">Spent Chips</th>
+              <th className="py-3 px-3">Squad Count</th>
+              <th className="py-3 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {teams.map((t) => (
+              <tr key={t.id} className="hover:bg-slate-50">
+                <td className="py-3 px-3 font-bold text-slate-900 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs overflow-hidden">
+                    {t.teamLogo ? <img src={t.teamLogo} alt={t.teamName} className="w-full h-full object-cover" /> : t.teamShortCode || 'TM'}
+                  </div>
+                  <div>
+                    <span>{t.teamName}</span>
+                    <span className="text-[10px] text-slate-400 block font-normal">{t.teamShortCode}</span>
+                  </div>
+                </td>
+                <td className="py-3 px-3 text-slate-700">
+                  <span className="font-bold">{t.ownerName}</span>
+                  <span className="text-[10px] text-slate-400 block">{t.ownerEmail}</span>
+                </td>
+                <td className="py-3 px-3 font-black text-emerald-700">
+                  {editChipsId === t.id ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        className="w-24 p-1 border rounded text-xs"
+                        value={newChips}
+                        onChange={(e) => setNewChips(e.target.value)}
+                      />
+                      <button onClick={() => handleUpdateChips(t.id)} className="text-emerald-600 font-bold">✓</button>
+                      <button onClick={() => setEditChipsId(null)} className="text-slate-400">✕</button>
+                    </div>
+                  ) : (
+                    <span>🪙 {fmtChips(t.remainingChips)}</span>
+                  )}
+                </td>
+                <td className="py-3 px-3 text-amber-700 font-bold">{fmtChips(t.spentChips)}</td>
+                <td className="py-3 px-3">{t.squad?.length || 0} / {t.squadLimit || 15}</td>
+                <td className="py-3 px-3 text-right space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditChipsId(t.id);
+                      setNewChips(String(t.remainingChips || 100000));
+                    }}
+                    className="text-xs py-1"
+                  >
+                    Adjust Purse
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleDelete(t.id)} className="text-rose-600 text-xs py-1">
+                    Delete
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -388,178 +359,154 @@ function UsersTab() {
 function AuctionsTab() {
   const { addToast } = useToast();
   const [auctions, setAuctions] = useState([]);
-  const [search, setSearch] = useState('');
-  const [actionId, setActionId] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!db) return;
-    const unsub = onSnapshot(
-      query(collection(db, 'auctions'), orderBy('createdAt', 'desc')),
-      (snap) => {
-        setAuctions(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      }
-    );
-    return unsub;
+    const unsub = onSnapshot(collection(db, 'auctions'), (s) => {
+      setAuctions(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
   }, []);
 
-  const now = new Date();
-
-  const filteredAuctions = auctions.filter((a) => {
-    const q = search.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      (a.title || '').toLowerCase().includes(q) ||
-      (a.sellerName || '').toLowerCase().includes(q)
-    );
-  });
-
-  const handleEndNow = async (auction) => {
-    if (!window.confirm(`Are you sure you want to end "${auction.title}" right now? The current leading bidder will win.`)) {
-      return;
-    }
-
-    setActionId(`${auction.id}-end`);
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this auction room?')) return;
     try {
-      await updateDoc(doc(db, 'auctions', auction.id), {
-        endsAt: Timestamp.fromDate(new Date()),
-      });
-      addToast(`Auction "${auction.title}" ended immediately.`, 'success');
+      await deleteDoc(doc(db, 'auctions', id));
+      addToast('Auction deleted.', 'info');
     } catch (err) {
-      console.error('End auction error:', err);
-      addToast(friendlyError(err), 'error');
-    } finally {
-      setActionId(null);
+      addToast('Failed to delete auction.', 'error');
     }
   };
-
-  const handleDelete = async (auction) => {
-    if (!window.confirm(`Are you sure you want to PERMANENTLY DELETE "${auction.title}" and all its bids? This action cannot be undone.`)) {
-      return;
-    }
-
-    setActionId(`${auction.id}-del`);
-    try {
-      // 1. Delete all bids in subcollection
-      const bidsSnap = await getDocs(collection(db, 'auctions', auction.id, 'bids'));
-      if (!bidsSnap.empty) {
-        const batch = writeBatch(db);
-        bidsSnap.forEach((bDoc) => batch.delete(bDoc.ref));
-        await batch.commit();
-      }
-
-      // 2. Delete auction document
-      await deleteDoc(doc(db, 'auctions', auction.id));
-      addToast(`Auction "${auction.title}" deleted.`, 'success');
-    } catch (err) {
-      console.error('Delete auction error:', err);
-      addToast(friendlyError(err), 'error');
-    } finally {
-      setActionId(null);
-    }
-  };
-
-  const columns = [
-    {
-      key: 'title',
-      label: 'Item Title',
-      render: (r) => (
-        <Link
-          to={`/auction/${r.id}`}
-          className="font-bold text-slate-900 hover:text-indigo-600 transition truncate max-w-[200px] block"
-          title={r.title}
-        >
-          {r.title}
-        </Link>
-      ),
-    },
-    { key: 'sellerName', label: 'Seller' },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (r) => {
-        const ends = r.endsAt?.toDate ? r.endsAt.toDate() : new Date(r.endsAt);
-        const live = ends > now;
-        return <Chip label={live ? 'Live' : 'Ended'} type={live ? 'live' : 'ended'} />;
-      },
-    },
-    { key: 'bidCount', label: 'Bids', render: (r) => r.bidCount || 0 },
-    {
-      key: 'currentBid',
-      label: 'Current Bid',
-      render: (r) => (
-        <span className="font-extrabold text-indigo-600">
-          {fmt(r.currentBid || r.startPrice)}
-        </span>
-      ),
-    },
-    {
-      key: 'endsAt',
-      label: 'End Time',
-      render: (r) =>
-        r.endsAt?.toDate ? r.endsAt.toDate().toLocaleString() : '—',
-    },
-    {
-      key: 'actions',
-      label: 'Moderation Actions',
-      render: (r) => {
-        const ends = r.endsAt?.toDate ? r.endsAt.toDate() : new Date(r.endsAt);
-        const isLive = ends > now;
-        const isEnding = actionId === `${r.id}-end`;
-        const isDeleting = actionId === `${r.id}-del`;
-
-        return (
-          <div className="flex items-center gap-2">
-            {isLive && (
-              <Button
-                size="sm"
-                variant="warning"
-                disabled={isEnding || isDeleting}
-                onClick={() => handleEndNow(r)}
-              >
-                {isEnding ? 'Ending…' : 'End now'}
-              </Button>
-            )}
-
-            <Button
-              size="sm"
-              variant="danger"
-              disabled={isEnding || isDeleting}
-              onClick={() => handleDelete(r)}
-            >
-              {isDeleting ? 'Deleting…' : 'Delete'}
-            </Button>
-          </div>
-        );
-      },
-    },
-  ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <input
-          type="text"
-          placeholder="Search auctions by title or seller…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-80 rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <span className="text-xs text-slate-400">
-          Showing {filteredAuctions.length} of {auctions.length} auctions
-        </span>
+    <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">Sports Auctions ({auctions.length})</h2>
+          <p className="text-xs text-slate-500">Monitor active tournament rooms and live rounds</p>
+        </div>
+        <Link to="/create">
+          <Button size="sm">+ New Auction</Button>
+        </Link>
       </div>
 
-      {loading ? (
-        <div className="py-12 text-center text-slate-400 text-sm">Loading auctions…</div>
-      ) : (
-        <DataTable
-          columns={columns}
-          rows={filteredAuctions}
-          emptyText="No auctions found matching your search."
-        />
-      )}
+      <div className="divide-y divide-slate-100">
+        {auctions.map((auc) => (
+          <div key={auc.id} className="py-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Link to={`/auction/${auc.id}`} className="font-black text-sm text-slate-900 hover:text-indigo-600">
+                  {auc.title}
+                </Link>
+                <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded">
+                  {auc.sport}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Status: <strong className="uppercase">{auc.status || 'live'}</strong> • Current Bid: {fmtChips(auc.currentBid)}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link to={`/auction/${auc.id}`}>
+                <Button size="sm" variant="outline" className="text-xs">
+                  Enter Room
+                </Button>
+              </Link>
+              <Button size="sm" variant="outline" onClick={() => handleDelete(auc.id)} className="text-rose-600 text-xs">
+                Delete
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UsersTab() {
+  const { addToast } = useToast();
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    if (!db) return;
+    const unsub = onSnapshot(collection(db, 'users'), (s) => {
+      setUsers(s.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
+
+  const handleRoleChange = async (uid, newRole) => {
+    try {
+      await updateDoc(doc(db, 'users', uid), { role: newRole });
+      addToast(`Role changed to ${newRole}.`, 'success');
+    } catch (err) {
+      addToast('Failed to update role.', 'error');
+    }
+  };
+
+  const handleToggleDisabled = async (uid, currentVal) => {
+    try {
+      await updateDoc(doc(db, 'users', uid), { disabled: !currentVal });
+      addToast(currentVal ? 'User unblocked.' : 'User blocked.', 'info');
+    } catch (err) {
+      addToast('Failed to toggle user status.', 'error');
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+      <div>
+        <h2 className="text-lg font-black text-slate-900">User Account Roles ({users.length})</h2>
+        <p className="text-xs text-slate-500">Manage user roles (player, bidder, admin) and access</p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-slate-200 text-slate-400 uppercase">
+              <th className="py-3 px-3">User</th>
+              <th className="py-3 px-3">Email</th>
+              <th className="py-3 px-3">Role</th>
+              <th className="py-3 px-3">Status</th>
+              <th className="py-3 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {users.map((u) => (
+              <tr key={u.id} className="hover:bg-slate-50">
+                <td className="py-3 px-3 font-bold text-slate-900">{u.displayName || 'User'}</td>
+                <td className="py-3 px-3 text-slate-600">{u.email}</td>
+                <td className="py-3 px-3">
+                  <select
+                    value={u.role || 'player'}
+                    onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                    className="p-1 border rounded text-xs bg-slate-50 font-bold"
+                  >
+                    <option value="player">Athlete (Player)</option>
+                    <option value="bidder">Team Owner (Bidder)</option>
+                    <option value="admin">Administrator</option>
+                  </select>
+                </td>
+                <td className="py-3 px-3">
+                  <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${u.disabled ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                    {u.disabled ? 'Blocked' : 'Active'}
+                  </span>
+                </td>
+                <td className="py-3 px-3 text-right">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleToggleDisabled(u.id, u.disabled)}
+                    className={`text-xs py-1 ${u.disabled ? 'text-emerald-600' : 'text-rose-600'}`}
+                  >
+                    {u.disabled ? 'Unblock' : 'Block'}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

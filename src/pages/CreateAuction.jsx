@@ -1,37 +1,37 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { createAuction } from '../services/auctions';
+import { createSportsAuction } from '../services/sportsAuctions';
 import { useToast } from '../context/ToastContext';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Notice from '../components/Notice';
 import { friendlyError } from '../lib/errors';
 
-function getDefaultEndsAt() {
-  const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  // Format as YYYY-MM-DDTHH:mm in local time for datetime-local input
-  const pad = (n) => String(n).padStart(2, '0');
-  const yyyy = future.getFullYear();
-  const MM = pad(future.getMonth() + 1);
-  const dd = pad(future.getDate());
-  const hh = pad(future.getHours());
-  const mm = pad(future.getMinutes());
-  return `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
-}
+const SPORTS = [
+  'Cricket',
+  'Football',
+  'Basketball',
+  'Kabaddi',
+  'Badminton',
+  'Volleyball',
+  'Tennis',
+  'Multi-Sport League',
+];
 
 export default function CreateAuction() {
-  const { user, profile, isBlocked } = useAuth();
+  const { user, profile, isAdmin, isBlocked } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
 
   const [form, setForm] = useState({
     title: '',
+    sport: 'Cricket',
     description: '',
-    imageUrl: '',
-    startPrice: '',
-    minIncrement: '100',
-    endsAt: getDefaultEndsAt(),
+    imageUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=800&auto=format&fit=crop&q=80',
+    minIncrement: '500',
+    defaultChips: '100000',
+    status: 'live',
   });
 
   const [errors, setErrors] = useState({});
@@ -45,7 +45,7 @@ export default function CreateAuction() {
           <div className="text-4xl mb-3">🚫</div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Account Suspended</h2>
           <Notice type="error" className="mb-6 text-left">
-            Your account has been suspended by an administrator. You cannot list new items or place bids.
+            Your account has been suspended by an administrator.
           </Notice>
           <Button variant="outline" onClick={() => navigate('/')}>
             Back to Home
@@ -57,38 +57,22 @@ export default function CreateAuction() {
 
   const update = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
-    if (errors[key]) {
-      setErrors((prev) => ({ ...prev, [key]: null }));
-    }
+    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: null }));
   };
 
   const validate = () => {
     const errs = {};
-
     if (!form.title.trim()) {
-      errs.title = 'Item title is required.';
+      errs.title = 'Tournament or League title is required.';
     }
-
-    const price = Number(form.startPrice);
-    if (!form.startPrice || isNaN(price) || price <= 0) {
-      errs.startPrice = 'Starting bid must be a positive number.';
+    const inc = Number(form.minIncrement);
+    if (isNaN(inc) || inc < 50) {
+      errs.minIncrement = 'Minimum bid increment must be at least 50 chips.';
     }
-
-    const increment = Number(form.minIncrement);
-    if (!form.minIncrement || isNaN(increment) || increment <= 0) {
-      errs.minIncrement = 'Minimum increment must be a positive number.';
+    const chips = Number(form.defaultChips);
+    if (isNaN(chips) || chips < 1000) {
+      errs.defaultChips = 'Default chips must be at least 1,000 chips.';
     }
-
-    if (!form.endsAt) {
-      errs.endsAt = 'End date and time is required.';
-    } else {
-      const selected = new Date(form.endsAt);
-      const minFuture = new Date(Date.now() + 60 * 1000); // at least 1 min in future
-      if (isNaN(selected.getTime()) || selected < minFuture) {
-        errs.endsAt = 'End time must be at least 1 minute into the future.';
-      }
-    }
-
     return errs;
   };
 
@@ -102,36 +86,36 @@ export default function CreateAuction() {
       return;
     }
 
-    setErrors({});
     setSubmitting(true);
 
     try {
-      const newAuctionId = await createAuction(form, user, profile);
-      addToast('Your auction has been successfully listed!', 'success');
-      navigate(`/auction/${newAuctionId}`);
+      const auctionId = await createSportsAuction(form, user, profile);
+      addToast('Sports Auction room created successfully! Live round is ready.', 'success');
+      navigate(`/auction/${auctionId}`);
     } catch (err) {
-      console.error('Create auction error:', err);
+      console.error('Failed to create sports auction:', err);
       setGeneralError(friendlyError(err));
-      addToast(friendlyError(err), 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-10 shadow-sm">
-          <div className="mb-8">
-            <span className="text-xs uppercase font-bold text-indigo-600 tracking-wider">
-              Seller Portal
+          <div className="flex items-center gap-3 mb-6">
+            <span className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-2xl font-black">
+              🏆
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
-              List an Item for Auction
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Fill in the item details to start receiving live bids immediately
-            </p>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                Create Sports Auction
+              </h1>
+              <p className="text-slate-500 text-sm mt-0.5">
+                Set up a live tournament player auction room for team owners to bid with chips
+              </p>
+            </div>
           </div>
 
           {generalError && (
@@ -142,96 +126,108 @@ export default function CreateAuction() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
-              label="Item Title"
+              label="Tournament / League Title"
               id="title"
-              type="text"
-              placeholder="e.g. Vintage 1970s Chronograph Watch"
+              placeholder="e.g. Premier Cricket Super League 2026"
               value={form.title}
               onChange={update('title')}
               error={errors.title}
               required
             />
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="description" className="text-sm font-medium text-slate-700">
-                Description
-              </label>
-              <textarea
-                id="description"
-                rows={4}
-                value={form.description}
-                onChange={update('description')}
-                placeholder="Describe the condition, authenticity, provenance, and specifications of your item…"
-                className="w-full rounded-xl border border-slate-300 p-3.5 text-sm text-slate-900 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-              />
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Sport Discipline
+                </label>
+                <select
+                  value={form.sport}
+                  onChange={update('sport')}
+                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  {SPORTS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
 
-            <Input
-              label="Image URL"
-              id="imageUrl"
-              type="url"
-              placeholder="https://images.unsplash.com/…"
-              value={form.imageUrl}
-              onChange={update('imageUrl')}
-              helper="Direct link to a public image (JPG, PNG, WebP). Leave blank to use letter banner."
-            />
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Auction Status
+                </label>
+                <select
+                  value={form.status}
+                  onChange={update('status')}
+                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="live">🔴 Live (Bidding open immediately)</option>
+                  <option value="upcoming">⏳ Upcoming / Scheduled</option>
+                </select>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Starting Bid"
-                id="startPrice"
+                label="Default Team Purse (Chips 🪙)"
+                id="defaultChips"
                 type="number"
-                min="1"
-                step="1"
-                placeholder="1000"
-                value={form.startPrice}
-                onChange={update('startPrice')}
-                error={errors.startPrice}
+                value={form.defaultChips}
+                onChange={update('defaultChips')}
+                error={errors.defaultChips}
+                helper="Budget assigned to participating team owners"
                 required
               />
 
               <Input
-                label="Minimum Bid Increment"
+                label="Minimum Bid Increment (Chips 🪙)"
                 id="minIncrement"
                 type="number"
-                min="1"
-                step="1"
-                placeholder="100"
                 value={form.minIncrement}
                 onChange={update('minIncrement')}
                 error={errors.minIncrement}
-                helper="Default: 100"
+                helper="Minimum chips added per new bid (e.g. 500)"
                 required
               />
             </div>
 
             <Input
-              label="Auction Ends At"
-              id="endsAt"
-              type="datetime-local"
-              value={form.endsAt}
-              onChange={update('endsAt')}
-              error={errors.endsAt}
-              helper="Must be at least 1 minute in the future. Defaults to 24 hours from now."
-              required
+              label="Banner Image URL"
+              id="imageUrl"
+              type="url"
+              placeholder="https://..."
+              value={form.imageUrl}
+              onChange={update('imageUrl')}
+              helper="Tournament banner photo"
             />
 
-            <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Auction Description & Rules
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Specify tournament rules, max squad limit, overseas player rules, etc."
+                value={form.description}
+                onChange={update('description')}
+                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+
+            <div className="pt-4 flex gap-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => navigate('/')}
-                disabled={submitting}
+                className="flex-1"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={submitting}
-                size="lg"
-                className="shadow-md"
+                className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 font-bold"
               >
-                {submitting ? 'Publishing Listing…' : 'Publish Auction'}
+                {submitting ? 'Launching Auction…' : 'Launch Sports Auction'}
               </Button>
             </div>
           </form>
