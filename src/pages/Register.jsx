@@ -437,14 +437,6 @@ export default function Register() {
                   error={fieldErrors.level}
                   required
                 />
-                {playerForm.level && (
-                  <p className="text-xs text-slate-500 mt-1">
-                    Base auction price:{' '}
-                    <strong className="text-blue-700">
-                      {(LEVEL_BASE_PRICE[playerForm.level] || 0).toLocaleString()} Chips
-                    </strong>
-                  </p>
-                )}
               </div>
 
               {/* Match Statistics */}
