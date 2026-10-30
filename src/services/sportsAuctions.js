@@ -26,7 +26,7 @@ export async function createSportsAuction(data, user, profile) {
 
   const newDoc = {
     title: data.title.trim(),
-    sport: data.sport || 'Cricket',
+    sport: data.sport || 'Badminton',
     description: (data.description || '').trim(),
     imageUrl: (data.imageUrl || '').trim(),
     minIncrement,

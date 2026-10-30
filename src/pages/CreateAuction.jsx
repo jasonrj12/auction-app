@@ -10,13 +10,13 @@ import { TrophyIcon, AlertIcon } from '../components/Icons';
 import { friendlyError } from '../lib/errors';
 
 const SPORTS = [
+  'Badminton',
   'Cricket',
   'Football',
   'Basketball',
   'Kabaddi',
-  'Badminton',
-  'Volleyball',
   'Tennis',
+  'Volleyball',
   'Multi-Sport League',
 ];
 
@@ -27,9 +27,9 @@ export default function CreateAuction() {
 
   const [form, setForm] = useState({
     title: '',
-    sport: 'Cricket',
+    sport: 'Badminton',
     description: '',
-    imageUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=800&auto=format&fit=crop&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&auto=format&fit=crop&q=80',
     minIncrement: '500',
     defaultChips: '100000',
     status: 'live',
@@ -131,7 +131,7 @@ export default function CreateAuction() {
             <Input
               label="Tournament / League Title"
               id="title"
-              placeholder="e.g. Premier Cricket Super League 2026"
+              placeholder="e.g. Premier Badminton Super League 2026"
               value={form.title}
               onChange={update('title')}
               error={errors.title}
