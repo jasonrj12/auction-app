@@ -39,7 +39,7 @@ export default function Home() {
           
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-bold text-slate-300 mb-6 shadow-sm">
             <TrophyIcon className="w-4 h-4 text-blue-400" />
-            <span>Sports Player Auction Platform</span>
+            <span>Badminton Player Auction Platform</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight max-w-4xl mx-auto text-white">
@@ -47,18 +47,18 @@ export default function Home() {
           </h1>
 
           <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto mt-5 leading-relaxed font-medium">
-            Register as a sports athlete or team franchise owner. Tournament administrators host real-time auctions where teams spend chip budgets to recruit talent.
+            Register as a badminton shuttler or franchise owner. Tournament administrators host real-time auctions where teams spend chip purses to draft players.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
             <Link to="/players">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-7 shadow-md">
-                Explore Players Pool
+                Explore Shuttlers Pool
               </Button>
             </Link>
             <Link to="/teams">
               <Button size="lg" variant="outline" className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 font-bold px-7">
-                View Team Owners
+                View Franchise Owners
               </Button>
             </Link>
             <Link to="/register">
@@ -72,7 +72,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mt-14 pt-8 border-t border-slate-800 text-center">
             <div>
               <p className="text-3xl font-black text-white">{metrics.totalAthletes}</p>
-              <p className="text-xs text-slate-400 uppercase font-bold tracking-wider mt-1">Athletes in Pool</p>
+              <p className="text-xs text-slate-400 uppercase font-bold tracking-wider mt-1">Shuttlers in Pool</p>
             </div>
             <div>
               <p className="text-3xl font-black text-blue-400">{metrics.totalTeams}</p>
@@ -80,7 +80,7 @@ export default function Home() {
             </div>
             <div>
               <p className="text-3xl font-black text-emerald-400">{metrics.soldAthletes}</p>
-              <p className="text-xs text-slate-400 uppercase font-bold tracking-wider mt-1">Players Acquired</p>
+              <p className="text-xs text-slate-400 uppercase font-bold tracking-wider mt-1">Shuttlers Acquired</p>
             </div>
             <div>
               <p className="text-3xl font-black text-slate-200">{fmtChips(metrics.totalChipsCirculating)}</p>
@@ -97,7 +97,7 @@ export default function Home() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                Live Sports Auctions
+                Live Badminton Auctions
               </h2>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -105,7 +105,7 @@ export default function Home() {
             </p>
           </div>
           <Link to="/players" className="text-xs font-bold text-blue-600 hover:text-blue-800">
-            View All Players →
+            View All Shuttlers →
           </Link>
         </div>
 
@@ -199,16 +199,16 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <PlayerIcon className="w-5 h-5 text-blue-600" />
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                  Featured Athletes
+                  Featured Badminton Shuttlers
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Top talent available across global sporting disciplines
+                Top talent available across singles, doubles, and mixed disciplines
               </p>
             </div>
             <Link to="/players">
               <Button size="sm" variant="outline" className="font-bold">
-                View All {players.length} Players →
+                View All {players.length} Shuttlers →
               </Button>
             </Link>
           </div>

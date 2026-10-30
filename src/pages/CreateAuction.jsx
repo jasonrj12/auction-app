@@ -9,16 +9,7 @@ import Notice from '../components/Notice';
 import { TrophyIcon, AlertIcon } from '../components/Icons';
 import { friendlyError } from '../lib/errors';
 
-const SPORTS = [
-  'Badminton',
-  'Cricket',
-  'Football',
-  'Basketball',
-  'Kabaddi',
-  'Tennis',
-  'Volleyball',
-  'Multi-Sport League',
-];
+const SPORTS = ['Badminton'];
 
 export default function CreateAuction() {
   const { user, profile, isBlocked } = useAuth();

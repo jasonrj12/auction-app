@@ -28,7 +28,6 @@ export default function Dashboard() {
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editPhoto, setEditPhoto] = useState('');
-  const [editBasePrice, setEditBasePrice] = useState('');
   const [editBio, setEditBio] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -42,7 +41,6 @@ export default function Dashboard() {
       getPlayerById(user.uid).then((p) => {
         if (p) {
           setPlayerData(p);
-          setEditBasePrice(String(p.basePrice || 5000));
           setEditBio(p.bio || '');
         }
         setLoading(false);
@@ -72,7 +70,6 @@ export default function Dashboard() {
           name: editName.trim(),
           phone: editPhone.trim(),
           photoUrl: editPhoto,
-          basePrice: Number(editBasePrice) || playerData.basePrice,
           bio: editBio.trim(),
         });
         setPlayerData((prev) => ({
@@ -80,7 +77,6 @@ export default function Dashboard() {
           name: editName.trim(),
           phone: editPhone.trim(),
           photoUrl: editPhoto,
-          basePrice: Number(editBasePrice) || prev.basePrice,
           bio: editBio.trim(),
         }));
       }
@@ -355,28 +351,18 @@ export default function Dashboard() {
             />
 
             {isPlayer && (
-              <>
-                <Input
-                  label="Auction Base Price (Chips)"
-                  id="editBasePrice"
-                  type="number"
-                  value={editBasePrice}
-                  onChange={(e) => setEditBasePrice(e.target.value)}
-                  disabled={playerData?.status === 'sold'}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Bio & Achievements
+                </label>
+                <textarea
+                  rows={3}
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  placeholder="Share details about your badminton journey, tournament highlights, or club achievements..."
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Bio & Achievements
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-              </>
+              </div>
             )}
 
             <Button

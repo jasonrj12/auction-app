@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { subscribeAllTeams } from '../services/teams';
 import { fmtChips } from '../lib/format';
-import { OwnerIcon, ShieldIcon } from '../components/Icons';
+import { OwnerIcon, ShieldIcon, CloseIcon } from '../components/Icons';
 import Button from '../components/Button';
 import Input from '../components/Input';
 
@@ -308,9 +308,10 @@ function TeamRosterModal({ team, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold hover:bg-slate-300 transition"
+            className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-300 transition"
+            aria-label="Close"
           >
-            ✕
+            <CloseIcon className="w-4 h-4" />
           </button>
         </div>
 

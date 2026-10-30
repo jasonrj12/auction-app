@@ -14,17 +14,6 @@ import { useToast } from '../context/ToastContext';
 import { registerPlayer } from '../services/players';
 import { registerTeam } from '../services/teams';
 
-const SPORTS_OPTIONS = [
-  'Badminton',
-  'Cricket',
-  'Football',
-  'Basketball',
-  'Kabaddi',
-  'Tennis',
-  'Volleyball',
-  'Other Sports',
-];
-
 const BADMINTON_DISCIPLINES = [
   "Men's Singles",
   "Women's Singles",
@@ -39,7 +28,7 @@ const BADMINTON_DISCIPLINES = [
 
 const BADMINTON_STYLES = [
   'Attacking / Steep Jump Smasher',
-  'Defensive Counter-Attacker (Retrieval & Court Coverage)',
+  'Defensive Counter-Attacker (Retrieval & Stamina)',
   'Net Playmaker / Hairpin Drop Specialist',
   'Tactical Rally Builder (Deceptive Clears & Drops)',
   'All-Round Precision Shuttler',
@@ -52,41 +41,13 @@ const BADMINTON_TIERS = [
   { tier: 'Tier 3 (Emerging / Junior Talent)', base: 3000 },
 ];
 
-const ROLES_BY_SPORT = {
-  Badminton: BADMINTON_DISCIPLINES,
-  Cricket: [
-    'Top-Order Batsman',
-    'Middle-Order Batsman',
-    'Fast Bowler',
-    'Spin Bowler',
-    'All-Rounder',
-    'Wicketkeeper Batsman',
-  ],
-  Football: [
-    'Forward / Striker',
-    'Winger',
-    'Attacking Midfielder',
-    'Central Midfielder',
-    'Center-Back Defender',
-    'Full-Back',
-    'Goalkeeper',
-  ],
-  Basketball: [
-    'Point Guard',
-    'Shooting Guard',
-    'Small Forward',
-    'Power Forward',
-    'Center',
-  ],
-};
-
 export default function Register() {
   const navigate = useNavigate();
   const { addToast } = useToast();
 
   const [roleType, setRoleType] = useState('player'); // 'player' | 'bidder'
 
-  // Common user fields
+  // Personal Info (empty by default)
   const [photoData, setPhotoData] = useState('');
   const [form, setForm] = useState({
     name: '',
@@ -96,25 +57,23 @@ export default function Register() {
     password: '',
   });
 
-  // Player fields (Defaults to Badminton)
+  // Player fields (all empty by default, strictly Badminton)
   const [playerForm, setPlayerForm] = useState({
-    sport: 'Badminton', // DEFAULT SPORT: Badminton
-    role: "Men's Singles",
+    role: '',
     hand: 'Right-handed',
-    style: 'Attacking / Steep Jump Smasher',
-    tier: 'Tier 2 (District / University / Club Premier)',
-    basePrice: 6000,
-    matches: 45,
-    wins: 34,
-    losses: 11,
-    ranking: 'State Rank #4',
-    smashSpeed: '385 km/h',
-    titles: '3 Titles, 5 Silver',
-    racket: 'Yonex Astrox 100ZZ',
+    style: '',
+    tier: '',
+    matches: '',
+    wins: '',
+    losses: '',
+    ranking: '',
+    smashSpeed: '',
+    titles: '',
+    racket: '',
     bio: '',
   });
 
-  // Bidder (Team Owner) fields
+  // Bidder (Team Owner) fields (empty by default)
   const [teamLogo, setTeamLogo] = useState('');
   const [bidderForm, setBidderForm] = useState({
     teamName: '',
@@ -134,21 +93,12 @@ export default function Register() {
 
   const updatePlayer = (key) => (e) => {
     setPlayerForm((prev) => ({ ...prev, [key]: e.target.value }));
+    if (fieldErrors[key]) setFieldErrors((prev) => ({ ...prev, [key]: null }));
   };
 
   const updateBidder = (key) => (e) => {
     setBidderForm((prev) => ({ ...prev, [key]: e.target.value }));
     if (fieldErrors[key]) setFieldErrors((prev) => ({ ...prev, [key]: null }));
-  };
-
-  const handleTierChange = (e) => {
-    const selectedTier = e.target.value;
-    const found = BADMINTON_TIERS.find((t) => t.tier === selectedTier);
-    setPlayerForm((prev) => ({
-      ...prev,
-      tier: selectedTier,
-      basePrice: found ? found.base : prev.basePrice,
-    }));
   };
 
   const validate = () => {
@@ -165,6 +115,12 @@ export default function Register() {
 
     if (!form.password || form.password.length < 6) {
       errors.password = 'Password must be at least 6 characters.';
+    }
+
+    if (roleType === 'player') {
+      if (!playerForm.role) {
+        errors.role = 'Please select your badminton event / discipline.';
+      }
     }
 
     if (roleType === 'bidder') {
@@ -214,16 +170,18 @@ export default function Register() {
         createdAt: serverTimestamp(),
       });
 
-      // 3. Register corresponding Player or Team entry
+      // 3. Register Player or Team
       if (roleType === 'player') {
-        const isBadminton = playerForm.sport === 'Badminton';
-        const combinedStyle = isBadminton
-          ? `${playerForm.hand} / ${playerForm.style}`
-          : playerForm.style;
+        const totalMatches = playerForm.matches ? Number(playerForm.matches) : 0;
+        const totalWins = playerForm.wins ? Number(playerForm.wins) : 0;
+        const totalLosses = playerForm.losses ? Number(playerForm.losses) : 0;
+        const winPercent = totalMatches > 0 ? `${((totalWins / totalMatches) * 100).toFixed(1)}% Win Rate` : '-';
 
-        const totalMatches = Number(playerForm.matches || 0);
-        const wins = Number(playerForm.wins || 0);
-        const winPercent = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) + '%' : '-';
+        // Calculate base price from tier, without requiring player to enter bid amount
+        const tierObj = BADMINTON_TIERS.find((t) => t.tier === playerForm.tier);
+        const calculatedBasePrice = tierObj ? tierObj.base : 5000;
+
+        const combinedStyle = [playerForm.hand, playerForm.style].filter(Boolean).join(' / ');
 
         await registerPlayer(
           {
@@ -232,25 +190,25 @@ export default function Register() {
             phone: form.phone.trim(),
             dob: form.dob,
             photoUrl: photoData,
-            sport: playerForm.sport,
-            role: playerForm.role,
-            style: combinedStyle,
-            tier: playerForm.tier,
-            basePrice: Number(playerForm.basePrice || 5000),
+            sport: 'Badminton',
+            role: playerForm.role || "Men's Singles",
+            style: combinedStyle || 'Right-handed',
+            tier: playerForm.tier || 'Tier 2 (District / Club)',
+            basePrice: calculatedBasePrice,
             matches: totalMatches,
-            runsOrGoals: wins, // Wins in badminton
-            wicketsOrAssists: Number(playerForm.losses || 0), // Losses in badminton
-            highestScore: isBadminton && playerForm.smashSpeed ? `Smash: ${playerForm.smashSpeed}` : '-',
-            average: isBadminton ? `${winPercent} Win Rate` : '-',
-            strikeRate: isBadminton && playerForm.ranking ? playerForm.ranking : '-',
+            runsOrGoals: totalWins, // Career wins
+            wicketsOrAssists: totalLosses, // Career losses
+            highestScore: playerForm.smashSpeed ? `Smash: ${playerForm.smashSpeed}` : '-',
+            average: winPercent,
+            strikeRate: playerForm.ranking || '-',
             racket: playerForm.racket || '',
             titles: playerForm.titles || '',
-            bio: playerForm.bio,
+            bio: playerForm.bio || '',
           },
           createdUser
         );
 
-        addToast(`${playerForm.sport} athlete registered. You are now in the auction pool.`, 'success');
+        addToast('Badminton player registration successful. You are in the auction pool.', 'success');
         navigate('/players');
       } else {
         await registerTeam(
@@ -268,7 +226,7 @@ export default function Register() {
           createdUser
         );
 
-        addToast(`Team '${bidderForm.teamName}' registered with 100,000 Chips.`, 'success');
+        addToast(`Badminton franchise '${bidderForm.teamName}' registered.`, 'success');
         navigate('/teams');
       }
     } catch (err) {
@@ -278,8 +236,6 @@ export default function Register() {
       setSubmitting(false);
     }
   };
-
-  const isBadminton = playerForm.sport === 'Badminton';
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 py-12">
@@ -291,10 +247,10 @@ export default function Register() {
             <TrophyIcon className="w-6 h-6" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Sports Auction Registration
+            Badminton Auction Registration
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Register as a player or franchise owner for live player auctions (Default: Badminton)
+            Register as a player or franchise owner for badminton league auctions
           </p>
         </div>
 
@@ -310,7 +266,7 @@ export default function Register() {
             }`}
           >
             <PlayerIcon className="w-4 h-4" />
-            <span>Sports Player</span>
+            <span>Badminton Player</span>
           </button>
           <button
             type="button"
@@ -336,7 +292,7 @@ export default function Register() {
           {/* Section: Personal Info */}
           <div>
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-              {roleType === 'player' ? 'Player Profile & Personal Details' : 'Franchise Owner Details'}
+              {roleType === 'player' ? 'Personal Details' : 'Owner Details'}
             </h3>
 
             <div className="flex flex-col items-center justify-center mb-4">
@@ -347,7 +303,7 @@ export default function Register() {
                 size="lg"
               />
               <span className="text-[11px] text-slate-400 mt-1 font-medium">
-                {roleType === 'player' ? 'Athlete Headshot Photo' : 'Owner Profile Photo'}
+                {roleType === 'player' ? 'Upload Headshot' : 'Upload Owner Photo'}
               </span>
             </div>
 
@@ -355,7 +311,7 @@ export default function Register() {
               <Input
                 label="Full Name"
                 id="name"
-                placeholder={roleType === 'player' ? 'e.g. Viktor Axelsen / P. V. Sindhu' : 'e.g. Ramesh Kumar'}
+                placeholder="Enter full name"
                 value={form.name}
                 onChange={updateCommon('name')}
                 error={fieldErrors.name}
@@ -366,7 +322,7 @@ export default function Register() {
                 label="Email Address"
                 id="email"
                 type="email"
-                placeholder="athlete@example.com"
+                placeholder="name@example.com"
                 value={form.email}
                 onChange={updateCommon('email')}
                 error={fieldErrors.email}
@@ -383,7 +339,7 @@ export default function Register() {
                 value={form.phone}
                 onChange={updateCommon('phone')}
                 error={fieldErrors.phone}
-                helper="With international country code"
+                helper="With country code"
                 required
               />
 
@@ -412,255 +368,158 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Role Specific Fields: PLAYER */}
+          {/* Role Specific Fields: BADMINTON PLAYER */}
           {roleType === 'player' && (
             <div className="pt-6 border-t border-slate-200 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Sport Discipline & Player Category
-                </h3>
-                {isBadminton && (
-                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                    Default Sport: Badminton
-                  </span>
-                )}
-              </div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Badminton Profile & Technical Details
+              </h3>
 
-              {/* Sport Selector */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Sport Discipline
+                    Event / Discipline <span className="text-rose-500">*</span>
                   </label>
                   <select
-                    value={playerForm.sport}
-                    onChange={(e) => {
-                      const newSport = e.target.value;
-                      const defaultRole = ROLES_BY_SPORT[newSport] ? ROLES_BY_SPORT[newSport][0] : 'Player';
-                      setPlayerForm((prev) => ({
-                        ...prev,
-                        sport: newSport,
-                        role: defaultRole,
-                      }));
-                    }}
+                    value={playerForm.role}
+                    onChange={updatePlayer('role')}
                     className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
                   >
-                    {SPORTS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                    <option value="">Select your discipline...</option>
+                    {BADMINTON_DISCIPLINES.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                  {fieldErrors.role && (
+                    <p className="text-xs text-rose-600 mt-1">{fieldErrors.role}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Dominant Playing Hand
+                  </label>
+                  <select
+                    value={playerForm.hand}
+                    onChange={updatePlayer('hand')}
+                    className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="Right-handed">Right-handed</option>
+                    <option value="Left-handed">Left-handed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Badminton Playing Style
+                  </label>
+                  <select
+                    value={playerForm.style}
+                    onChange={updatePlayer('style')}
+                    className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="">Select playing style...</option>
+                    {BADMINTON_STYLES.map((st) => (
+                      <option key={st} value={st}>{st}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Playing Role / Event
+                    Player Tier / Grade
                   </label>
-                  {ROLES_BY_SPORT[playerForm.sport] ? (
-                    <select
-                      value={playerForm.role}
-                      onChange={updatePlayer('role')}
-                      className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
-                    >
-                      {ROLES_BY_SPORT[playerForm.sport].map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <Input
-                      id="role"
-                      placeholder="e.g. Singles Specialist"
-                      value={playerForm.role}
-                      onChange={updatePlayer('role')}
-                    />
-                  )}
+                  <select
+                    value={playerForm.tier}
+                    onChange={updatePlayer('tier')}
+                    className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="">Select your level...</option>
+                    {BADMINTON_TIERS.map((t) => (
+                      <option key={t.tier} value={t.tier}>{t.tier}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              {/* BADMINTON SPECIFIC SECTION */}
-              {isBadminton ? (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Dominant Playing Hand
-                      </label>
-                      <select
-                        value={playerForm.hand}
-                        onChange={updatePlayer('hand')}
-                        className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      >
-                        <option value="Right-handed">Right-handed</option>
-                        <option value="Left-handed">Left-handed (Lefty Advantage)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Badminton Playing Style
-                      </label>
-                      <select
-                        value={playerForm.style}
-                        onChange={updatePlayer('style')}
-                        className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      >
-                        {BADMINTON_STYLES.map((st) => (
-                          <option key={st} value={st}>{st}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Player Tier & Base Chips */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Player Tier / Grading
-                      </label>
-                      <select
-                        value={playerForm.tier}
-                        onChange={handleTierChange}
-                        className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      >
-                        {BADMINTON_TIERS.map((t) => (
-                          <option key={t.tier} value={t.tier}>
-                            {t.tier}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <Input
-                      label="Auction Base Price (Chips)"
-                      id="basePrice"
-                      type="number"
-                      value={playerForm.basePrice}
-                      onChange={updatePlayer('basePrice')}
-                      helper="Opening bid amount in chips"
-                      required
-                    />
-                  </div>
-
-                  {/* Badminton Career Stats */}
-                  <div>
-                    <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                      Badminton Match & Performance Statistics
-                    </h4>
-                    <div className="grid grid-cols-3 gap-3">
-                      <Input
-                        label="Matches Played"
-                        id="matches"
-                        type="number"
-                        value={playerForm.matches}
-                        onChange={updatePlayer('matches')}
-                      />
-                      <Input
-                        label="Career Wins"
-                        id="wins"
-                        type="number"
-                        value={playerForm.wins}
-                        onChange={updatePlayer('wins')}
-                      />
-                      <Input
-                        label="Career Losses"
-                        id="losses"
-                        type="number"
-                        value={playerForm.losses}
-                        onChange={updatePlayer('losses')}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-                      <Input
-                        label="State / National / BWF Ranking"
-                        id="ranking"
-                        placeholder="e.g. State Rank #4, BWF #18"
-                        value={playerForm.ranking}
-                        onChange={updatePlayer('ranking')}
-                      />
-                      <Input
-                        label="Recorded Top Smash Speed"
-                        id="smashSpeed"
-                        placeholder="e.g. 385 km/h"
-                        value={playerForm.smashSpeed}
-                        onChange={updatePlayer('smashSpeed')}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-                      <Input
-                        label="Tournaments / Medals Won"
-                        id="titles"
-                        placeholder="e.g. 3 Gold, 4 Silver Medals"
-                        value={playerForm.titles}
-                        onChange={updatePlayer('titles')}
-                      />
-                      <Input
-                        label="Preferred Racket / Equipment"
-                        id="racket"
-                        placeholder="e.g. Yonex Astrox 100ZZ / Victor Thruster"
-                        value={playerForm.racket}
-                        onChange={updatePlayer('racket')}
-                      />
-                    </div>
-                  </div>
+              {/* Badminton Match Statistics */}
+              <div className="pt-2">
+                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Match & Career Record
+                </h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <Input
+                    label="Matches Played"
+                    id="matches"
+                    type="number"
+                    placeholder="e.g. 30"
+                    value={playerForm.matches}
+                    onChange={updatePlayer('matches')}
+                  />
+                  <Input
+                    label="Career Wins"
+                    id="wins"
+                    type="number"
+                    placeholder="e.g. 22"
+                    value={playerForm.wins}
+                    onChange={updatePlayer('wins')}
+                  />
+                  <Input
+                    label="Career Losses"
+                    id="losses"
+                    type="number"
+                    placeholder="e.g. 8"
+                    value={playerForm.losses}
+                    onChange={updatePlayer('losses')}
+                  />
                 </div>
-              ) : (
-                /* Generic other sports fields */
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input
-                      label="Playing Style / Specialization"
-                      id="style"
-                      placeholder="e.g. Right-hand bat / Right-arm fast"
-                      value={playerForm.style}
-                      onChange={updatePlayer('style')}
-                    />
 
-                    <Input
-                      label="Auction Base Price (Chips)"
-                      id="basePrice"
-                      type="number"
-                      value={playerForm.basePrice}
-                      onChange={updatePlayer('basePrice')}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <Input
-                      label="Matches"
-                      id="matches"
-                      type="number"
-                      value={playerForm.matches}
-                      onChange={updatePlayer('matches')}
-                    />
-                    <Input
-                      label="Wins / Runs"
-                      id="wins"
-                      type="number"
-                      value={playerForm.wins}
-                      onChange={updatePlayer('wins')}
-                    />
-                    <Input
-                      label="Losses / Wickets"
-                      id="losses"
-                      type="number"
-                      value={playerForm.losses}
-                      onChange={updatePlayer('losses')}
-                    />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                  <Input
+                    label="State / National / Club Ranking"
+                    id="ranking"
+                    placeholder="e.g. State Rank #4, District Top 8"
+                    value={playerForm.ranking}
+                    onChange={updatePlayer('ranking')}
+                  />
+                  <Input
+                    label="Top Smash Speed (Optional)"
+                    id="smashSpeed"
+                    placeholder="e.g. 360 km/h"
+                    value={playerForm.smashSpeed}
+                    onChange={updatePlayer('smashSpeed')}
+                  />
                 </div>
-              )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                  <Input
+                    label="Medals & Tournament Titles"
+                    id="titles"
+                    placeholder="e.g. 2 Gold, 3 Silver medals"
+                    value={playerForm.titles}
+                    onChange={updatePlayer('titles')}
+                  />
+                  <Input
+                    label="Racket / Equipment"
+                    id="racket"
+                    placeholder="e.g. Yonex Astrox / Victor Thruster"
+                    value={playerForm.racket}
+                    onChange={updatePlayer('racket')}
+                  />
+                </div>
+              </div>
 
               {/* Bio */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Athlete Bio & Career Highlights (Optional)
+                  Athlete Bio & Playing Background (Optional)
                 </label>
                 <textarea
                   rows={2}
                   className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
-                  placeholder="Share details about your playing background, club achievements, or coaching history..."
+                  placeholder="Share details about your badminton journey, club affiliations, or achievements..."
                   value={playerForm.bio}
                   onChange={updatePlayer('bio')}
                 />
@@ -708,24 +567,15 @@ export default function Register() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Allocated Chip Purse"
-                  id="initialChips"
-                  type="number"
-                  value={bidderForm.initialChips}
-                  onChange={updateBidder('initialChips')}
-                  helper="Starting purse for purchasing players"
-                  disabled
-                />
-
+              <div>
                 <Input
                   label="Target Squad Size"
                   id="squadLimit"
                   type="number"
+                  placeholder="12"
                   value={bidderForm.squadLimit}
                   onChange={updateBidder('squadLimit')}
-                  helper="Recommended: 10 - 12 players (Singles & Doubles)"
+                  helper="Target players in squad (Singles & Doubles shuttlers)"
                 />
               </div>
 
@@ -750,7 +600,7 @@ export default function Register() {
             {submitting
               ? 'Creating your account…'
               : roleType === 'player'
-              ? `Register as ${playerForm.sport} Player`
+              ? 'Register as Badminton Player'
               : 'Register as Team Owner'}
           </Button>
         </form>

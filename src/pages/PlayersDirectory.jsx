@@ -1,17 +1,26 @@
 import { useState, useEffect, useMemo } from 'react';
 import { subscribeAllPlayers } from '../services/players';
 import { fmtChips } from '../lib/format';
-import { PlayerIcon, TrophyIcon, CheckIcon } from '../components/Icons';
-import Avatar from '../components/Avatar';
-import Chip from '../components/Chip';
+import { PlayerIcon, CheckIcon, CloseIcon } from '../components/Icons';
 import Button from '../components/Button';
 import Input from '../components/Input';
+
+const BADMINTON_DISCIPLINES = [
+  'All',
+  "Men's Singles",
+  "Women's Singles",
+  "Men's Doubles",
+  "Women's Doubles",
+  "Mixed Doubles",
+  "Singles Specialist",
+  "Doubles Specialist",
+];
 
 export default function PlayersDirectory() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [sportFilter, setSportFilter] = useState('All');
+  const [disciplineFilter, setDisciplineFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('basePrice-desc');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -24,15 +33,12 @@ export default function PlayersDirectory() {
     return () => unsub();
   }, []);
 
-  const sportsList = useMemo(() => {
-    const set = new Set(players.map((p) => p.sport).filter(Boolean));
-    return ['All', ...Array.from(set)];
-  }, [players]);
-
   const filteredPlayers = useMemo(() => {
     return players
       .filter((p) => {
-        if (sportFilter !== 'All' && p.sport !== sportFilter) return false;
+        if (disciplineFilter !== 'All') {
+          if (!p.role?.toLowerCase().includes(disciplineFilter.toLowerCase())) return false;
+        }
         if (statusFilter !== 'All' && p.status !== statusFilter) return false;
         if (search.trim()) {
           const q = search.toLowerCase();
@@ -50,7 +56,7 @@ export default function PlayersDirectory() {
         if (sortBy === 'matches-desc') return (b.stats?.matches || 0) - (a.stats?.matches || 0);
         return (a.name || '').localeCompare(b.name || '');
       });
-  }, [players, sportFilter, statusFilter, search, sortBy]);
+  }, [players, disciplineFilter, statusFilter, search, sortBy]);
 
   const metrics = useMemo(() => {
     const total = players.length;
@@ -72,11 +78,11 @@ export default function PlayersDirectory() {
                 <PlayerIcon className="w-5 h-5" />
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                Players Pool Directory
+                Badminton Players Pool
               </h1>
             </div>
             <p className="text-slate-500 text-sm mt-1">
-              Explore all registered athletes across Cricket, Football, Basketball and more
+              Explore registered badminton shuttlers across singles, doubles, and mixed disciplines
             </p>
           </div>
         </div>
@@ -84,7 +90,7 @@ export default function PlayersDirectory() {
         {/* Metrics Overview Bar */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Registered Players</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Registered Shuttlers</p>
             <p className="text-2xl font-black text-slate-900 mt-1">{metrics.total}</p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -106,7 +112,7 @@ export default function PlayersDirectory() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="md:col-span-2">
               <Input
-                placeholder="Search players by name, role, or team..."
+                placeholder="Search shuttlers by name, discipline, or team..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -121,7 +127,7 @@ export default function PlayersDirectory() {
                 <option value="All">All Statuses</option>
                 <option value="available">Available in Pool</option>
                 <option value="in_auction">In Auction</option>
-                <option value="sold">Sold to Team</option>
+                <option value="sold">Sold to Franchise</option>
                 <option value="unsold">Unsold</option>
               </select>
             </div>
@@ -141,22 +147,22 @@ export default function PlayersDirectory() {
             </div>
           </div>
 
-          {/* Sport Filter Pills */}
+          {/* Discipline Filter Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1">
-            <span className="text-xs font-bold text-slate-400 mr-1 uppercase">Sport:</span>
-            {sportsList.map((sport) => {
-              const isSelected = sportFilter === sport;
+            <span className="text-xs font-bold text-slate-400 mr-1 uppercase">Discipline:</span>
+            {BADMINTON_DISCIPLINES.map((discipline) => {
+              const isSelected = disciplineFilter === discipline;
               return (
                 <button
-                  key={sport}
-                  onClick={() => setSportFilter(sport)}
+                  key={discipline}
+                  onClick={() => setDisciplineFilter(discipline)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                     isSelected
                       ? 'bg-slate-900 text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {sport}
+                  {discipline}
                 </button>
               );
             })}
@@ -167,14 +173,14 @@ export default function PlayersDirectory() {
         {loading ? (
           <div className="py-20 text-center">
             <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-500">Loading sports players...</p>
+            <p className="text-sm font-semibold text-slate-500">Loading badminton players...</p>
           </div>
         ) : filteredPlayers.length === 0 ? (
           <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto">
             <PlayerIcon className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-slate-900 mb-1">No players found</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">No badminton players found</h3>
             <p className="text-sm text-slate-500">
-              Try adjusting your search criteria or register a new sports player.
+              Try adjusting your search criteria or register a new badminton player.
             </p>
           </div>
         ) : (
@@ -224,13 +230,10 @@ function PlayerCard({ player, onSelect }) {
             </div>
           )}
 
-          {/* Sport & Role Badge */}
+          {/* Discipline Badge */}
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
             <span className="bg-black/75 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg">
-              {player.sport}
-            </span>
-            <span className="bg-slate-800/90 backdrop-blur-md text-slate-200 text-[11px] font-bold px-2.5 py-1 rounded-lg">
-              {player.role}
+              {player.role || "Men's Singles"}
             </span>
           </div>
 
@@ -270,15 +273,15 @@ function PlayerCard({ player, onSelect }) {
         <div className="p-4 bg-slate-50/70 border-b border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
           <div className="bg-white p-2 rounded-xl border border-slate-100">
             <span className="block text-[10px] font-bold text-slate-400 uppercase">Matches</span>
-            <span className="font-black text-slate-800">{player.stats?.matches ?? '-'}</span>
+            <span className="font-black text-slate-800">{player.stats?.matches || player.matches || '-'}</span>
           </div>
           <div className="bg-white p-2 rounded-xl border border-slate-100">
-            <span className="block text-[10px] font-bold text-slate-400 uppercase">Runs/Goals</span>
-            <span className="font-black text-slate-800">{player.stats?.runsOrGoals ?? '-'}</span>
+            <span className="block text-[10px] font-bold text-slate-400 uppercase">Wins</span>
+            <span className="font-black text-slate-800">{player.stats?.runsOrGoals ?? player.runsOrGoals ?? '-'}</span>
           </div>
           <div className="bg-white p-2 rounded-xl border border-slate-100">
-            <span className="block text-[10px] font-bold text-slate-400 uppercase">Wkts/Assists</span>
-            <span className="font-black text-slate-800">{player.stats?.wicketsOrAssists ?? '-'}</span>
+            <span className="block text-[10px] font-bold text-slate-400 uppercase">Losses</span>
+            <span className="font-black text-slate-800">{player.stats?.wicketsOrAssists ?? player.wicketsOrAssists ?? '-'}</span>
           </div>
         </div>
 
@@ -287,7 +290,7 @@ function PlayerCard({ player, onSelect }) {
           {isSold ? (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-emerald-800 font-bold">Winning Team:</span>
+                <span className="text-emerald-800 font-bold">Winning Franchise:</span>
                 <span className="font-black text-emerald-950">{player.soldToTeamName || 'Team'}</span>
               </div>
               <div className="flex items-center justify-between text-xs mt-1">
@@ -302,7 +305,7 @@ function PlayerCard({ player, onSelect }) {
                 <span className="text-sm font-black text-blue-700">{fmtChips(player.basePrice)}</span>
               </div>
               <span className="text-xs font-semibold text-slate-500">
-                {player.age ? `Age: ${player.age}` : 'Pro Athlete'}
+                {player.age ? `Age: ${player.age}` : 'Badminton Shuttler'}
               </span>
             </div>
           )}
@@ -317,7 +320,7 @@ function PlayerCard({ player, onSelect }) {
           onClick={onSelect}
           className="w-full font-bold"
         >
-          View Career Profile
+          View Shuttler Profile
         </Button>
       </div>
     </div>
@@ -328,7 +331,6 @@ function PlayerDetailsModal({ player, onClose }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto border border-slate-200 shadow-2xl">
-        {/* Header Photo */}
         <div className="relative h-60 bg-slate-900">
           {player.photoUrl ? (
             <img
@@ -343,14 +345,15 @@ function PlayerDetailsModal({ player, onClose }) {
           )}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/70 text-white flex items-center justify-center font-bold hover:bg-black transition"
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black transition"
+            aria-label="Close"
           >
-            ✕
+            <CloseIcon className="w-4 h-4" />
           </button>
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-6 text-white">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs bg-blue-600 px-2 py-0.5 rounded font-black uppercase">
-                {player.sport}
+                Badminton
               </span>
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded font-bold">
                 {player.role}
@@ -361,7 +364,6 @@ function PlayerDetailsModal({ player, onClose }) {
           </div>
         </div>
 
-        {/* Content */}
         <div className="p-6 space-y-6">
           {player.status === 'sold' ? (
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
@@ -405,7 +407,7 @@ function PlayerDetailsModal({ player, onClose }) {
 
           <div>
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Career Statistics
+              Career & Match Statistics
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
@@ -413,23 +415,23 @@ function PlayerDetailsModal({ player, onClose }) {
                 <span className="text-base font-black text-slate-900">{player.stats?.matches ?? '-'}</span>
               </div>
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Runs / Goals</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Career Wins</span>
                 <span className="text-base font-black text-slate-900">{player.stats?.runsOrGoals ?? '-'}</span>
               </div>
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Wickets / Assists</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Career Losses</span>
                 <span className="text-base font-black text-slate-900">{player.stats?.wicketsOrAssists ?? '-'}</span>
               </div>
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">High Score</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Smash Speed / Best</span>
                 <span className="text-base font-black text-slate-900">{player.stats?.highestScore ?? '-'}</span>
               </div>
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Average</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Win Rate</span>
                 <span className="text-base font-black text-slate-900">{player.stats?.average ?? '-'}</span>
               </div>
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Strike Rate / Econ</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Ranking</span>
                 <span className="text-base font-black text-slate-900">{player.stats?.strikeRate ?? '-'}</span>
               </div>
             </div>

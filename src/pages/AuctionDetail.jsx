@@ -16,7 +16,7 @@ import {
 } from '../services/sportsAuctions';
 import { fmtChips } from '../lib/format';
 import { friendlyError } from '../lib/errors';
-import { TrophyIcon, GavelIcon, PlayerIcon, LivePulse, CheckIcon } from '../components/Icons';
+import { TrophyIcon, GavelIcon, PlayerIcon, LivePulse, CheckIcon, CloseIcon } from '../components/Icons';
 import Button from '../components/Button';
 import Notice from '../components/Notice';
 import Chip from '../components/Chip';
@@ -797,9 +797,10 @@ export default function AuctionDetail() {
               </div>
               <button
                 onClick={() => setShowPlayerPicker(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold hover:bg-slate-200"
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center hover:bg-slate-200"
+                aria-label="Close"
               >
-                ✕
+                <CloseIcon className="w-4 h-4" />
               </button>
             </div>
 

@@ -16,7 +16,7 @@ import { fmtChips } from '../lib/format';
 import { subscribeAllPlayers, deletePlayer } from '../services/players';
 import { subscribeAllTeams, setTeamChips, deleteTeam } from '../services/teams';
 import { seedSampleSportsData } from '../services/sampleData';
-import { ShieldIcon, TrophyIcon, PlayerIcon, OwnerIcon } from '../components/Icons';
+import { ShieldIcon, TrophyIcon, PlayerIcon, OwnerIcon, CheckIcon, CloseIcon } from '../components/Icons';
 import Tabs from '../components/Tabs';
 import Chip from '../components/Chip';
 import Button from '../components/Button';
@@ -321,8 +321,12 @@ function TeamsTab() {
                         value={newChips}
                         onChange={(e) => setNewChips(e.target.value)}
                       />
-                      <button onClick={() => handleUpdateChips(t.id)} className="text-emerald-600 font-bold">✓</button>
-                      <button onClick={() => setEditChipsId(null)} className="text-slate-400">✕</button>
+                      <button onClick={() => handleUpdateChips(t.id)} className="text-emerald-600 hover:text-emerald-700 p-1" title="Save">
+                        <CheckIcon className="w-4 h-4 inline" />
+                      </button>
+                      <button onClick={() => setEditChipsId(null)} className="text-slate-400 hover:text-slate-600 p-1" title="Cancel">
+                        <CloseIcon className="w-4 h-4 inline" />
+                      </button>
                     </div>
                   ) : (
                     <span>{fmtChips(t.remainingChips)}</span>
