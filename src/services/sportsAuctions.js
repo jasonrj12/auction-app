@@ -280,6 +280,17 @@ export async function passPlayerUnsold(auctionId, player) {
 }
 
 /**
+ * Update auction status (e.g. 'live', 'upcoming', 'completed', 'paused').
+ */
+export async function setAuctionStatus(auctionId, status) {
+  const auctionRef = doc(db, 'auctions', auctionId);
+  await updateDoc(auctionRef, {
+    status,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
  * End a sports auction.
  */
 export async function endSportsAuction(auctionId) {
