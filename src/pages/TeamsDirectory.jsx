@@ -4,6 +4,7 @@ import { fmtChips } from '../lib/format';
 import { OwnerIcon, ShieldIcon, CloseIcon } from '../components/Icons';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import Select from '../components/Select';
 
 export default function TeamsDirectory() {
   const [teams, setTeams] = useState([]);
@@ -99,17 +100,18 @@ export default function TeamsDirectory() {
               />
             </div>
             <div>
-              <select
+              <Select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="remainingChips-desc">Highest Remaining Purse</option>
-                <option value="remainingChips-asc">Lowest Remaining Purse</option>
-                <option value="spentChips-desc">Most Chips Spent</option>
-                <option value="squad-desc">Largest Squad Size</option>
-                <option value="name-asc">Team Name: A to Z</option>
-              </select>
+                onChange={(v) => setSortBy(v || 'remainingChips-desc')}
+                options={[
+                  { value: 'remainingChips-desc', label: 'Highest Remaining Purse' },
+                  { value: 'remainingChips-asc',  label: 'Lowest Remaining Purse' },
+                  { value: 'spentChips-desc',     label: 'Most Chips Spent' },
+                  { value: 'squad-desc',          label: 'Largest Squad Size' },
+                  { value: 'name-asc',            label: 'Team Name: A to Z' },
+                ]}
+                placeholder={null}
+              />
             </div>
           </div>
         </div>

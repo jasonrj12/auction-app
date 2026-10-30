@@ -21,6 +21,7 @@ import Tabs from '../components/Tabs';
 import Chip from '../components/Chip';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import Select from '../components/Select';
 
 const ADMIN_TABS = [
   { key: 'overview', label: 'Overview' },
@@ -480,15 +481,16 @@ function UsersTab() {
                 <td className="py-3 px-3 font-bold text-slate-900">{u.displayName || 'User'}</td>
                 <td className="py-3 px-3 text-slate-600">{u.email}</td>
                 <td className="py-3 px-3">
-                  <select
+                  <Select
                     value={u.role || 'player'}
-                    onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                    className="p-1 border rounded text-xs bg-slate-50 font-bold"
-                  >
-                    <option value="player">Athlete (Player)</option>
-                    <option value="bidder">Team Owner (Bidder)</option>
-                    <option value="admin">Administrator</option>
-                  </select>
+                    onChange={(v) => handleRoleChange(u.id, v)}
+                    options={[
+                      { value: 'player', label: 'Athlete (Player)' },
+                      { value: 'bidder', label: 'Team Owner (Bidder)' },
+                      { value: 'admin',  label: 'Administrator' },
+                    ]}
+                    placeholder={null}
+                  />
                 </td>
                 <td className="py-3 px-3">
                   <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${u.disabled ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>

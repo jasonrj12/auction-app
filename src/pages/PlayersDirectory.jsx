@@ -4,6 +4,7 @@ import { fmtChips } from '../lib/format';
 import { PlayerIcon, CheckIcon, CloseIcon } from '../components/Icons';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import Select from '../components/Select';
 
 const BADMINTON_DISCIPLINES = [
   'All',
@@ -119,31 +120,33 @@ export default function PlayersDirectory() {
             </div>
 
             <div>
-              <select
+              <Select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="All">All Statuses</option>
-                <option value="available">Available in Pool</option>
-                <option value="in_auction">In Auction</option>
-                <option value="sold">Sold to Franchise</option>
-                <option value="unsold">Unsold</option>
-              </select>
+                onChange={(v) => setStatusFilter(v || 'All')}
+                options={[
+                  { value: 'All', label: 'All Statuses' },
+                  { value: 'available', label: 'Available in Pool' },
+                  { value: 'in_auction', label: 'In Auction' },
+                  { value: 'sold', label: 'Sold to Franchise' },
+                  { value: 'unsold', label: 'Unsold' },
+                ]}
+                placeholder={null}
+              />
             </div>
 
             <div>
-              <select
+              <Select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="basePrice-desc">Base Price: High to Low</option>
-                <option value="basePrice-asc">Base Price: Low to High</option>
-                <option value="soldPrice-desc">Highest Sold Price</option>
-                <option value="matches-desc">Most Matches Played</option>
-                <option value="name-asc">Name: A to Z</option>
-              </select>
+                onChange={(v) => setSortBy(v || 'basePrice-desc')}
+                options={[
+                  { value: 'basePrice-desc', label: 'Base Price: High to Low' },
+                  { value: 'basePrice-asc',  label: 'Base Price: Low to High' },
+                  { value: 'soldPrice-desc', label: 'Highest Sold Price' },
+                  { value: 'matches-desc',   label: 'Most Matches Played' },
+                  { value: 'name-asc',       label: 'Name: A to Z' },
+                ]}
+                placeholder={null}
+              />
             </div>
           </div>
 

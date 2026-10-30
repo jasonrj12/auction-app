@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { createSportsAuction } from '../services/sportsAuctions';
 import { useToast } from '../context/ToastContext';
 import Input from '../components/Input';
+import Select from '../components/Select';
 import Button from '../components/Button';
 import Notice from '../components/Notice';
 import { TrophyIcon, AlertIcon } from '../components/Icons';
@@ -130,34 +131,24 @@ export default function CreateAuction() {
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Sport Discipline
-                </label>
-                <select
-                  value={form.sport}
-                  onChange={update('sport')}
-                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                >
-                  {SPORTS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Sport Discipline"
+                value={form.sport}
+                onChange={(v) => update('sport')({ target: { value: v } })}
+                options={SPORTS}
+                placeholder={null}
+              />
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Auction Status
-                </label>
-                <select
-                  value={form.status}
-                  onChange={update('status')}
-                  className="w-full h-11 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                >
-                  <option value="live">Live (Bidding open immediately)</option>
-                  <option value="upcoming">Upcoming / Scheduled</option>
-                </select>
-              </div>
+              <Select
+                label="Auction Status"
+                value={form.status}
+                onChange={(v) => update('status')({ target: { value: v } })}
+                options={[
+                  { value: 'live',     label: 'Live (Bidding open immediately)' },
+                  { value: 'upcoming', label: 'Upcoming / Scheduled' },
+                ]}
+                placeholder={null}
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

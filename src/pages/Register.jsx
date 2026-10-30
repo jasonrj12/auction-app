@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import Input from '../components/Input';
+import Select from '../components/Select';
 import Button from '../components/Button';
 import Notice from '../components/Notice';
 import PhotoPicker from '../components/PhotoPicker';
@@ -329,28 +330,20 @@ export default function Register() {
                 required
               />
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="gender" className="text-sm font-medium text-slate-700">
-                  Gender <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  id="gender"
-                  value={form.gender}
-                  onChange={updateCommon('gender')}
-                  className={`w-full h-[42px] px-3 bg-white border rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-600 ${
-                    fieldErrors.gender ? 'border-rose-400 bg-rose-50/50' : 'border-slate-300 hover:border-slate-400'
-                  }`}
-                >
-                  <option value="">Select gender...</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
-                {fieldErrors.gender && (
-                  <p className="text-xs text-rose-600 font-medium">{fieldErrors.gender}</p>
-                )}
-              </div>
+              <Select
+                label="Gender"
+                value={form.gender}
+                onChange={(v) => { setForm((p) => ({ ...p, gender: v })); if (fieldErrors.gender) setFieldErrors((p) => ({ ...p, gender: null })); }}
+                options={[
+                  { value: 'Male',           label: 'Male' },
+                  { value: 'Female',         label: 'Female' },
+                  { value: 'Other',          label: 'Other' },
+                  { value: 'Prefer not to say', label: 'Prefer not to say' },
+                ]}
+                placeholder="Select gender..."
+                error={fieldErrors.gender}
+                required
+              />
             </div>
 
             {/* Email + DOB */}
@@ -383,18 +376,13 @@ export default function Register() {
                 Mobile Number <span className="text-rose-500">*</span>
               </label>
               <div className="flex gap-2">
-                <select
+                <Select
                   value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="h-[42px] px-2 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-600 shrink-0"
-                  style={{ minWidth: '108px' }}
-                >
-                  {COUNTRY_CODES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setCountryCode(v || '+94')}
+                  options={COUNTRY_CODES.map((c) => ({ value: c.code, label: c.label }))}
+                  placeholder={null}
+                  className="shrink-0 w-[130px]"
+                />
                 <div className="flex-1">
                   <input
                     id="phone"
@@ -439,28 +427,18 @@ export default function Register() {
               </h3>
 
               {/* Level */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="level" className="text-sm font-medium text-slate-700">
-                  Playing Level <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  id="level"
+              <div>
+                <Select
+                  label="Playing Level"
                   value={playerForm.level}
-                  onChange={updatePlayer('level')}
-                  className={`w-full h-[42px] px-3 bg-white border rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-600 ${
-                    fieldErrors.level ? 'border-rose-400 bg-rose-50/50' : 'border-slate-300 hover:border-slate-400'
-                  }`}
-                >
-                  <option value="">Select your level...</option>
-                  {PLAYER_LEVELS.map((l) => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
-                {fieldErrors.level && (
-                  <p className="text-xs text-rose-600 font-medium">{fieldErrors.level}</p>
-                )}
+                  onChange={(v) => { setPlayerForm((p) => ({ ...p, level: v })); if (fieldErrors.level) setFieldErrors((p) => ({ ...p, level: null })); }}
+                  options={PLAYER_LEVELS}
+                  placeholder="Select your level..."
+                  error={fieldErrors.level}
+                  required
+                />
                 {playerForm.level && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 mt-1">
                     Base auction price:{' '}
                     <strong className="text-blue-700">
                       {(LEVEL_BASE_PRICE[playerForm.level] || 0).toLocaleString()} Chips
