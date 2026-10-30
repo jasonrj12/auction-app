@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useAuctions from '../hooks/useAuctions';
+import { useAuth } from '../context/AuthContext';
 import { subscribeAllPlayers } from '../services/players';
 import { subscribeAllTeams } from '../services/teams';
 import { fmtChips } from '../lib/format';
@@ -9,9 +10,17 @@ import Button from '../components/Button';
 import Chip from '../components/Chip';
 
 export default function Home() {
+  const { user, isAdmin, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const { auctions, loading: auctionsLoading } = useAuctions();
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState([]);
+
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, isAdmin, authLoading, navigate]);
 
   useEffect(() => {
     const unsubP = subscribeAllPlayers(setPlayers);
@@ -29,6 +38,10 @@ export default function Home() {
     const totalChipsCirculating = teams.reduce((acc, t) => acc + (t.totalChips || 0), 0);
     return { totalAthletes, soldAthletes, totalTeams, totalChipsCirculating };
   }, [players, teams]);
+
+  if (!authLoading && user && isAdmin) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

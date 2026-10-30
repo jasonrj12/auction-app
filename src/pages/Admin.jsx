@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   collection,
   onSnapshot,
@@ -44,7 +44,23 @@ const ADMIN_TABS = [
 ];
 
 export default function Admin() {
-  const [tab, setTab] = useState('bidding');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [tab, setTab] = useState(
+    ADMIN_TABS.some((t) => t.key === initialTab) ? initialTab : 'bidding'
+  );
+
+  useEffect(() => {
+    const currentParam = searchParams.get('tab');
+    if (currentParam && ADMIN_TABS.some((t) => t.key === currentParam)) {
+      setTab(currentParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (key) => {
+    setTab(key);
+    setSearchParams({ tab: key });
+  };
 
   // Shared Data across Admin console
   const [players, setPlayers] = useState([]);
@@ -153,7 +169,7 @@ export default function Admin() {
               return (
                 <button
                   key={t.key}
-                  onClick={() => setTab(t.key)}
+                  onClick={() => handleTabChange(t.key)}
                   className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 ${
                     active
                       ? 'bg-slate-900 text-white shadow-sm'
@@ -212,10 +228,15 @@ function BiddingTab({ auctions, players, teams }) {
   };
 
   const handleToggleStatus = async (auc) => {
-    const nextStatus = auc.status === 'live' ? 'upcoming' : 'live';
+    const nextStatus = auc.status === 'live' ? 'paused' : 'live';
     try {
       await setAuctionStatus(auc.id, nextStatus);
-      addToast(`Auction marked as ${nextStatus.toUpperCase()}.`, 'success');
+      addToast(
+        nextStatus === 'paused'
+          ? 'Auction PAUSED. Live bidding is suspended.'
+          : 'Auction is LIVE! Bidding active.',
+        nextStatus === 'paused' ? 'info' : 'success'
+      );
     } catch (err) {
       addToast('Failed to update status.', 'error');
     }
@@ -296,6 +317,7 @@ function BiddingTab({ auctions, players, teams }) {
         <div className="grid grid-cols-1 gap-6">
           {auctions.map((auc) => {
             const isLive = auc.status === 'live';
+            const isPaused = auc.status === 'paused';
             const currentPlayer = auc.currentPlayer;
             const holdingTeam = auc.highestBidderTeamName;
             const holdingBid = Number(auc.currentBid || 0);
@@ -325,18 +347,37 @@ function BiddingTab({ auctions, players, teams }) {
                   </div>
 
                   {/* Room Status Pill & Primary CTAs */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <span
                       className={`text-xs font-black uppercase px-3 py-1 rounded-full flex items-center gap-1.5 ${
-                        isLive ? 'bg-red-600 text-white shadow animate-pulse' : 'bg-slate-800 text-slate-300'
+                        isLive
+                          ? 'bg-red-600 text-white shadow animate-pulse'
+                          : isPaused
+                          ? 'bg-amber-500 text-white shadow'
+                          : 'bg-slate-800 text-slate-300'
                       }`}
                     >
                       {isLive && <LivePulse />}
-                      <span>{isLive ? 'LIVE BIDDING' : auc.status?.toUpperCase() || 'UPCOMING'}</span>
+                      {isPaused && <span className="w-2 h-2 rounded-full bg-white animate-ping" />}
+                      <span>{isLive ? 'LIVE BIDDING' : isPaused ? 'BIDDING PAUSED' : auc.status?.toUpperCase() || 'UPCOMING'}</span>
                     </span>
 
+                    <Button
+                      size="sm"
+                      onClick={() => handleToggleStatus(auc)}
+                      className={`text-xs font-bold py-1.5 px-3.5 shadow whitespace-nowrap ${
+                        isLive
+                          ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                          : isPaused
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-slate-800 hover:bg-slate-700 text-white'
+                      }`}
+                    >
+                      {isLive ? 'Pause Bidding' : isPaused ? 'Resume Live Bidding' : 'Start Live Bidding'}
+                    </Button>
+
                     <Link to={`/auction/${auc.id}`}>
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 shadow">
+                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-1.5 px-3.5 shadow whitespace-nowrap">
                         Enter Live Room
                       </Button>
                     </Link>
@@ -345,6 +386,23 @@ function BiddingTab({ auctions, players, teams }) {
 
                 {/* Live Hammer Desk Area */}
                 <div className="p-6 bg-slate-50/70 border-b border-slate-200">
+                  {/* Paused Warning Banner */}
+                  {isPaused && (
+                    <div className="mb-4 bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping flex-shrink-0" />
+                        <span>AUCTION IS CURRENTLY PAUSED BY ADMIN — Live bidding is suspended on all bidder screens.</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleToggleStatus(auc)}
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-black text-xs py-1 px-3 self-start sm:self-auto"
+                      >
+                        Resume Live Bidding
+                      </Button>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                       <GavelIcon className="w-4 h-4 text-blue-600" />
@@ -465,7 +523,7 @@ function BiddingTab({ auctions, players, teams }) {
                       onClick={() => handleToggleStatus(auc)}
                       className="font-bold text-slate-700 hover:text-blue-600 transition"
                     >
-                      {isLive ? 'Pause Bidding' : 'Resume / Go Live'}
+                      {isLive ? 'Pause Bidding' : isPaused ? 'Resume Live Bidding' : 'Start Live Bidding'}
                     </button>
                     <span>•</span>
                     <button

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -11,6 +11,7 @@ import PhotoPicker from '../components/PhotoPicker';
 import { TrophyIcon, PlayerIcon, OwnerIcon, InfoIcon } from '../components/Icons';
 import { validateDob } from '../lib/validators';
 import { friendlyError } from '../lib/errors';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { registerPlayer } from '../services/players';
 import { registerTeam } from '../services/teams';
@@ -54,7 +55,14 @@ const LEVEL_BASE_PRICE = {
 
 export default function Register() {
   const navigate = useNavigate();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, isAdmin, authLoading, navigate]);
 
   const [roleType, setRoleType] = useState('player'); // 'player' | 'bidder'
 
@@ -247,6 +255,8 @@ export default function Register() {
       setSubmitting(false);
     }
   };
+
+  if (!authLoading && user && isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 py-12">

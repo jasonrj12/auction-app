@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { subscribeAllPlayers } from '../services/players';
 import { fmtChips } from '../lib/format';
 import { PlayerIcon, CheckIcon, CloseIcon } from '../components/Icons';
@@ -21,6 +23,8 @@ const GENDER_FILTERS = [
 ];
 
 export default function PlayersDirectory() {
+  const { user, isAdmin, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -29,6 +33,12 @@ export default function PlayersDirectory() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('basePrice-desc');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      navigate('/admin?tab=players', { replace: true });
+    }
+  }, [user, isAdmin, authLoading, navigate]);
 
   useEffect(() => {
     const unsub = subscribeAllPlayers((list) => {
@@ -86,6 +96,8 @@ export default function PlayersDirectory() {
     const totalSpent = players.reduce((sum, p) => sum + (p.soldPrice || 0), 0);
     return { total, sold, available, totalSpent };
   }, [players]);
+
+  if (!authLoading && user && isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">

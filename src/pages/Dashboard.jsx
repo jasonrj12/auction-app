@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +15,14 @@ import PhotoPicker from '../components/PhotoPicker';
 
 export default function Dashboard() {
   const { user, profile, isAdmin, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    if (isAdmin) {
+      navigate('/admin', { replace: true });
+    }
+  }, [isAdmin, navigate]);
 
   const isBidder = profile?.role === 'bidder';
   const isPlayer = profile?.role === 'player';
@@ -32,6 +39,7 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (isAdmin) return;
     if (!user) return;
     setEditName(profile?.displayName || '');
     setEditPhone(profile?.phone || '');
@@ -104,6 +112,8 @@ export default function Dashboard() {
       setSaving(false);
     }
   };
+
+  if (isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">

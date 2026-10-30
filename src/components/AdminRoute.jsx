@@ -23,13 +23,15 @@ export default function AdminRoute({ children }) {
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Administrators Only</h2>
           <Notice type="error" className="mb-6 text-left">
-            This area requires tournament administrator privileges. Your current account does not have admin access.
+            {!user
+              ? 'You must log in with an administrator account to access this page.'
+              : 'This area requires tournament administrator privileges. Your current account does not have admin access.'}
           </Notice>
           <Link
-            to="/"
+            to={!user ? '/login' : '/'}
             className="inline-flex items-center justify-center px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold text-sm hover:bg-slate-800 transition"
           >
-            Back to Home
+            {!user ? 'Log in as Admin' : 'Back to Home'}
           </Link>
         </div>
       </div>

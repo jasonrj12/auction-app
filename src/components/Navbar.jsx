@@ -43,7 +43,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link
-            to="/"
+            to={isAdmin ? "/admin" : "/"}
             className="flex items-center gap-2.5 group"
           >
             <span className="w-9 h-9 rounded-xl bg-slate-900 text-blue-400 flex items-center justify-center font-black shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -53,67 +53,73 @@ export default function Navbar() {
               <span className="tracking-tight text-slate-900 text-lg font-black leading-tight">
                 BIDLY
               </span>
-              <span className="text-[10px] tracking-wider uppercase font-extrabold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
-                Sports
+              <span className={`text-[10px] tracking-wider uppercase font-extrabold px-1.5 py-0.5 rounded border ${
+                isAdmin
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-slate-100 text-slate-700 border-slate-200'
+              }`}>
+                {isAdmin ? 'ADMIN' : 'Sports'}
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center gap-6">
-            <Link
-              to="/"
-              className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
-                isActive('/') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span>Auctions</span>
-            </Link>
+            {isAdmin ? (
+              <>
+                <Link
+                  to="/admin"
+                  className={`text-sm font-bold flex items-center gap-1.5 transition-colors ${
+                    location.pathname.startsWith('/admin')
+                      ? 'text-blue-600'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <ShieldIcon className="w-4 h-4" />
+                  <span>Admin Console</span>
+                </Link>
 
-            <Link
-              to="/players"
-              className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
-                isActive('/players') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <PlayerIcon className="w-4 h-4" />
-              <span>Players Pool</span>
-            </Link>
+                <Link
+                  to="/create"
+                  className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
+                    isActive('/create') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <PlusIcon className="w-3.5 h-3.5" />
+                  <span>Create Auction</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/"
+                  className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
+                    isActive('/') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>Auctions</span>
+                </Link>
 
-            <Link
-              to="/teams"
-              className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
-                isActive('/teams') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <OwnerIcon className="w-4 h-4" />
-              <span>Team Owners</span>
-            </Link>
+                <Link
+                  to="/players"
+                  className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
+                    isActive('/players') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <PlayerIcon className="w-4 h-4" />
+                  <span>Players Pool</span>
+                </Link>
 
-            {isAdmin && (
-              <Link
-                to="/create"
-                className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
-                  isActive('/create') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <PlusIcon className="w-3.5 h-3.5" />
-                <span>Create Auction</span>
-              </Link>
-            )}
-
-            {isAdmin && (
-              <Link
-                to="/admin"
-                className={`text-sm font-bold flex items-center gap-1.5 transition-colors ${
-                  location.pathname.startsWith('/admin')
-                    ? 'text-blue-600'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <ShieldIcon className="w-4 h-4" />
-                <span>Admin Console</span>
-              </Link>
+                <Link
+                  to="/teams"
+                  className={`text-sm font-bold transition-colors flex items-center gap-1.5 ${
+                    isActive('/teams') ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <OwnerIcon className="w-4 h-4" />
+                  <span>Team Owners</span>
+                </Link>
+              </>
             )}
           </div>
 
@@ -146,9 +152,9 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center gap-3">
                 <Link
-                  to="/dashboard"
+                  to={isAdmin ? '/admin' : '/dashboard'}
                   className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200"
-                  title="Go to Dashboard"
+                  title={isAdmin ? 'Admin Console' : 'Go to Dashboard'}
                 >
                   <Avatar
                     photoData={profile?.photoData}
@@ -160,7 +166,7 @@ export default function Navbar() {
                       {profile?.displayName || user.email?.split('@')[0]}
                     </span>
                     <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-                      {profile?.role === 'bidder' ? 'Team Owner' : profile?.role === 'player' ? 'Athlete' : profile?.role || 'User'}
+                      {isAdmin ? 'System Admin' : profile?.role === 'bidder' ? 'Team Owner' : profile?.role === 'player' ? 'Athlete' : profile?.role || 'User'}
                     </span>
                   </div>
                 </Link>
@@ -199,55 +205,58 @@ export default function Navbar() {
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-2">
-          {userTeam && (
+          {userTeam && !isAdmin && (
             <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center justify-between text-xs mb-2">
               <span className="text-emerald-800 font-bold uppercase">Team Purse:</span>
               <span className="font-black text-emerald-950">{fmtChips(userTeam.remainingChips)}</span>
             </div>
           )}
 
-          <Link
-            to="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
-          >
-            Live Auctions
-          </Link>
+          {isAdmin ? (
+            <>
+              <Link
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-blue-600 bg-blue-50"
+              >
+                <ShieldIcon className="w-4 h-4" />
+                <span>Admin Console</span>
+              </Link>
+              <Link
+                to="/create"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                <PlusIcon className="w-3.5 h-3.5" />
+                <span>Create Auction</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Live Auctions
+              </Link>
 
-          <Link
-            to="/players"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
-          >
-            Players Directory
-          </Link>
+              <Link
+                to="/players"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Players Directory
+              </Link>
 
-          <Link
-            to="/teams"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
-          >
-            Team Owners & Bidders
-          </Link>
-
-          {isAdmin && (
-            <Link
-              to="/create"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
-            >
-              Create Sports Auction
-            </Link>
-          )}
-
-          {isAdmin && (
-            <Link
-              to="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-900 hover:bg-slate-50"
-            >
-              Admin Console
-            </Link>
+              <Link
+                to="/teams"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Team Owners & Bidders
+              </Link>
+            </>
           )}
 
           <div className="pt-3 border-t border-slate-100">
@@ -270,13 +279,15 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="space-y-2">
-                <Link
-                  to="/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 bg-slate-50"
-                >
-                  My Dashboard
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-3 py-2 rounded-xl text-sm font-bold text-slate-700 bg-slate-50"
+                  >
+                    My Dashboard
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="w-full text-left px-3 py-2 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50"

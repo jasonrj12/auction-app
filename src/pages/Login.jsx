@@ -1,17 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Notice from '../components/Notice';
 import { TrophyIcon } from '../components/Icons';
 import { friendlyError } from '../lib/errors';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const { addToast } = useToast();
 
   const [email, setEmail] = useState('');
@@ -21,6 +24,12 @@ export default function Login() {
   const [resetting, setResetting] = useState(false);
 
   const from = location.state?.from?.pathname || '/';
+
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, isAdmin, authLoading, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -33,8 +42,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
       addToast('Welcome back!', 'success');
+      
+      try {
+        const snap = await getDoc(doc(db, 'users', cred.user.uid));
+        if (snap.exists() && snap.data()?.role === 'admin') {
+          navigate('/admin', { replace: true });
+          return;
+        }
+      } catch (e) {
+        // Fallback to default redirect
+      }
       navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);

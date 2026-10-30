@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { subscribeAllTeams } from '../services/teams';
 import { fmtChips } from '../lib/format';
 import { OwnerIcon, ShieldIcon, CloseIcon } from '../components/Icons';
@@ -7,11 +9,19 @@ import Input from '../components/Input';
 import Select from '../components/Select';
 
 export default function TeamsDirectory() {
+  const { user, isAdmin, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('remainingChips-desc');
   const [selectedTeam, setSelectedTeam] = useState(null);
+
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      navigate('/admin?tab=teams', { replace: true });
+    }
+  }, [user, isAdmin, authLoading, navigate]);
 
   useEffect(() => {
     const unsub = subscribeAllTeams((list) => {
@@ -47,6 +57,8 @@ export default function TeamsDirectory() {
     const totalPlayersBought = teams.reduce((sum, t) => sum + (t.squad?.length || 0), 0);
     return { totalTeams, totalCirculation, totalSpent, totalPlayersBought };
   }, [teams]);
+
+  if (!authLoading && user && isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">

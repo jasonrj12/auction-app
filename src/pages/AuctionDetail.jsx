@@ -13,6 +13,7 @@ import {
   placeSportsBid,
   sellPlayerToWinner,
   passPlayerUnsold,
+  setAuctionStatus,
 } from '../services/sportsAuctions';
 import { fmtChips } from '../lib/format';
 import { friendlyError } from '../lib/errors';
@@ -101,6 +102,10 @@ export default function AuctionDetail() {
 
   // Handle Quick Bids
   const handlePlaceBid = async (amount) => {
+    if (auction?.status !== 'live') {
+      addToast('Cannot place bid: Bidding is currently paused or inactive.', 'error');
+      return;
+    }
     if (!user) {
       addToast('Please log in to place bids.', 'error');
       return;
@@ -122,6 +127,25 @@ export default function AuctionDetail() {
     } catch (err) {
       console.error('Bid error:', err);
       addToast(friendlyError(err), 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Admin: Toggle Pause / Resume
+  const handleToggleAuctionPause = async () => {
+    const nextStatus = auction.status === 'live' ? 'paused' : 'live';
+    setActionLoading(true);
+    try {
+      await setAuctionStatus(id, nextStatus);
+      addToast(
+        nextStatus === 'paused'
+          ? 'Auction paused! Bidding is temporarily suspended.'
+          : 'Auction resumed! Live bidding is active.',
+        'success'
+      );
+    } catch (err) {
+      addToast(err.message || 'Failed to toggle status.', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -230,14 +254,43 @@ export default function AuctionDetail() {
               <TrophyIcon className="w-6 h-6" />
             </span>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">
                   {auction.title}
                 </h1>
-                <span className="bg-red-600 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                  <LivePulse />
-                  <span>LIVE</span>
-                </span>
+                {auction.status === 'live' ? (
+                  <span className="bg-red-600 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow">
+                    <LivePulse />
+                    <span>LIVE</span>
+                  </span>
+                ) : auction.status === 'paused' ? (
+                  <span className="bg-amber-500 text-slate-950 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow">
+                    PAUSED
+                  </span>
+                ) : auction.status === 'completed' ? (
+                  <span className="bg-slate-700 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                    COMPLETED
+                  </span>
+                ) : (
+                  <span className="bg-blue-600 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                    UPCOMING
+                  </span>
+                )}
+
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleToggleAuctionPause}
+                    disabled={actionLoading}
+                    className={`ml-2 text-xs font-black uppercase px-3 py-1 rounded-xl shadow-sm transition ${
+                      auction.status === 'live'
+                        ? 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
+                  >
+                    {auction.status === 'live' ? 'Pause Auction' : 'Resume Auction'}
+                  </button>
+                )}
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 Sport: <strong>{auction.sport}</strong> • Min Increment: <strong>+{fmtChips(minIncrement)}</strong>
@@ -373,7 +426,22 @@ export default function AuctionDetail() {
                       Place Team Bid in Chips
                     </h3>
 
-                    {!user ? (
+                    {auction.status === 'paused' ? (
+                      <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl text-center">
+                        <p className="text-base font-black text-amber-900 mb-1">
+                          Auction Bidding is Temporarily Paused
+                        </p>
+                        <p className="text-xs text-amber-800 font-medium max-w-md mx-auto">
+                          The tournament administrator has paused bidding. Stand by for the auctioneer to resume the round.
+                        </p>
+                      </div>
+                    ) : auction.status === 'completed' ? (
+                      <div className="p-5 bg-slate-100 border border-slate-200 rounded-2xl text-center">
+                        <p className="text-sm font-black text-slate-800">
+                          This auction tournament has ended.
+                        </p>
+                      </div>
+                    ) : !user ? (
                       <div className="p-4 bg-slate-50 rounded-2xl text-center border border-slate-200">
                         <p className="text-xs text-slate-600 mb-2 font-medium">
                           Log in as a registered Team Owner to bid on this player.
@@ -461,7 +529,7 @@ export default function AuctionDetail() {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <Button
                           disabled={actionLoading || !auction.highestBidderTeamId}
                           onClick={handleSellPlayer}
@@ -477,6 +545,20 @@ export default function AuctionDetail() {
                           className="font-bold py-3 text-slate-700"
                         >
                           Mark UNSOLD / Pass Player
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={actionLoading}
+                          onClick={handleToggleAuctionPause}
+                          className={`font-black py-3 text-xs uppercase tracking-wider ${
+                            auction.status === 'live'
+                              ? 'border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100'
+                              : 'border-emerald-400 bg-emerald-50 text-emerald-900 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {auction.status === 'live' ? 'Pause Live Floor' : 'Resume Live Floor'}
                         </Button>
                       </div>
                     </div>

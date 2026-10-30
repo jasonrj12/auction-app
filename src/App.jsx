@@ -60,9 +60,9 @@ export default function App() {
           <Route
             path="/create"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <CreateAuction />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
